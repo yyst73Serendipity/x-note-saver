@@ -1,0 +1,143 @@
+<!--
+  manager.html - Twitter 笔记收藏管理页面
+  左侧分类栏 + 右侧推文列表，支持搜索、筛选、管理收藏
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Twitter 笔记收藏</title>
+  <link rel="stylesheet" href="manager.css">
+</head>
+<body class="app-body">
+  <div class="app">
+    <!-- 顶部栏 -->
+    <header class="header">
+      <div class="header-left">
+        <h1 class="header-title">Twitter 笔记收藏</h1>
+        <span class="header-subtitle">整理收藏，分类笔记，一键跳转原文</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn-header" id="btn-export">导出</button>
+        <button class="btn-header" id="btn-import">导入</button>
+        <button class="btn-header btn-header-danger" id="btn-clear">清空</button>
+      </div>
+    </header>
+
+    <div class="main">
+      <!-- 左侧分类栏 -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <span class="sidebar-title">分类</span>
+          <button class="btn-add-cat" id="btn-add-cat" title="新建分类">+</button>
+        </div>
+        <ul class="category-list" id="category-list">
+          <!-- 动态渲染 -->
+        </ul>
+        <!-- 新建分类输入框（默认隐藏） -->
+        <div class="new-cat-input hidden" id="new-cat-input">
+          <input type="text" placeholder="输入分类名" maxlength="20" id="input-cat-name">
+          <button class="btn-confirm" id="btn-confirm-cat">确定</button>
+          <button class="btn-cancel" id="btn-cancel-cat">取消</button>
+        </div>
+      </aside>
+
+      <!-- 分类删除确认弹窗 -->
+      <div class="modal-overlay hidden" id="delete-cat-modal">
+        <div class="modal-dialog">
+          <div class="modal-title">分类删除提醒</div>
+          <div class="modal-body" id="delete-cat-modal-body">
+            确定删除分类「<span class="highlight-name"></span>」吗？该分类下的推文将移至「<span class="highlight-fallback"></span>」。
+          </div>
+          <div class="modal-actions">
+            <button class="btn-modal-cancel" id="btn-cat-modal-cancel">取消</button>
+            <button class="btn-modal-confirm" id="btn-cat-modal-confirm">确定</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 推文删除确认弹窗 -->
+      <div class="modal-overlay hidden" id="delete-tweet-modal">
+        <div class="modal-dialog">
+          <div class="modal-title">推文删除提醒</div>
+          <div class="modal-body">确定删除该条推文吗？删除后无法恢复哦。</div>
+          <div class="modal-actions">
+            <button class="btn-modal-cancel" id="btn-tweet-modal-cancel">取消</button>
+            <button class="btn-modal-confirm" id="btn-tweet-modal-confirm">确定</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 清空数据确认弹窗 -->
+      <div class="modal-overlay hidden" id="clear-modal">
+        <div class="modal-dialog">
+          <div class="modal-title">数据清空提醒</div>
+          <div class="modal-body">确定清空所有收藏数据和分类吗？此操作不可恢复哦，建议先导出备份。</div>
+          <div class="modal-actions">
+            <button class="btn-modal-cancel" id="btn-clear-modal-cancel">取消</button>
+            <button class="btn-modal-confirm" id="btn-clear-modal-confirm">确定</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 导入/导出结果弹窗 -->
+      <div class="modal-overlay hidden" id="result-modal">
+        <div class="modal-dialog">
+          <div class="modal-title" id="result-modal-title"></div>
+          <div class="modal-body" id="result-modal-body"></div>
+          <div class="modal-actions">
+            <button class="btn-modal-confirm" id="btn-result-modal-ok">确定</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧推文列表 -->
+      <section class="content">
+        <!-- 搜索和排序栏 -->
+        <div class="toolbar">
+          <div class="search-wrap">
+            <span class="search-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </span>
+            <input type="text" class="search-input" id="search-input" placeholder="搜索推文正文或作者...">
+          </div>
+          <select class="sort-select" id="sort-select">
+            <option value="newest">最新收藏</option>
+            <option value="oldest">最早收藏</option>
+          </select>
+        </div>
+
+        <!-- 当前分类标题 -->
+        <div class="category-title-bar">
+          <span class="category-title" id="current-category-title">全部</span>
+          <span class="category-count" id="current-category-count">0 条</span>
+        </div>
+
+        <!-- 推文卡片列表 -->
+        <div class="tweet-list" id="tweet-list">
+          <!-- 动态渲染 -->
+        </div>
+
+        <!-- 空状态 -->
+        <div class="empty-state" id="empty-state">
+          <div class="empty-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+          <p>还没有收藏的推文</p>
+          <p class="empty-hint">去 Twitter 浏览推文，点击推文旁的收藏按钮吧</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- 隐藏的文件导入 input -->
+  <input type="file" class="import-file" id="import-file" accept=".json" hidden>
+
+  <script src="manager.js"></script>
+</body>
+</html>

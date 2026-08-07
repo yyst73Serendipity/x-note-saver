@@ -1,0 +1,792 @@
+/**
+ * manager.js - 管理页面逻辑
+ * 管理收藏推文：按分类查看、搜索、添加笔记、导入导出
+ */
+
+/* 状态 */
+let tweets = [];
+let categories = [];
+let currentCategory = '全部';
+let searchKeyword = '';
+let editingCategory = null;
+let pendingDeleteTweetId = null;
+
+/* DOM 元素引用 */
+const categoryList = document.getElementById('category-list');
+const tweetList = document.getElementById('tweet-list');
+const emptyState = document.getElementById('empty-state');
+const searchInput = document.getElementById('search-input');
+const sortSelect = document.getElementById('sort-select');
+const currentCatTitle = document.getElementById('current-category-title');
+const currentCatCount = document.getElementById('current-category-count');
+const newCatInput = document.getElementById('new-cat-input');
+const inputCatName = document.getElementById('input-cat-name');
+const btnAddCat = document.getElementById('btn-add-cat');
+const btnConfirmCat = document.getElementById('btn-confirm-cat');
+const btnCancelCat = document.getElementById('btn-cancel-cat');
+const btnExport = document.getElementById('btn-export');
+const btnImport = document.getElementById('btn-import');
+const btnClear = document.getElementById('btn-clear');
+const importFile = document.getElementById('import-file');
+
+/* 弹窗 DOM 引用 */
+const deleteCatModal = document.getElementById('delete-cat-modal');
+const deleteCatModalBody = document.getElementById('delete-cat-modal-body');
+const btnCatModalCancel = document.getElementById('btn-cat-modal-cancel');
+const btnCatModalConfirm = document.getElementById('btn-cat-modal-confirm');
+const deleteTweetModal = document.getElementById('delete-tweet-modal');
+const btnTweetModalCancel = document.getElementById('btn-tweet-modal-cancel');
+const btnTweetModalConfirm = document.getElementById('btn-tweet-modal-confirm');
+const clearModal = document.getElementById('clear-modal');
+const btnClearModalCancel = document.getElementById('btn-clear-modal-cancel');
+const btnClearModalConfirm = document.getElementById('btn-clear-modal-confirm');
+const resultModal = document.getElementById('result-modal');
+const resultModalTitle = document.getElementById('result-modal-title');
+const resultModalBody = document.getElementById('result-modal-body');
+const btnResultModalOk = document.getElementById('btn-result-modal-ok');
+
+/**
+ * HTML 转义
+ * @param {string} str
+ * @returns {string}
+ */
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+/**
+ * 格式化时间戳为可读字符串
+ * @param {number} timestamp
+ * @returns {string}
+ */
+function formatTime(timestamp) {
+  const d = new Date(timestamp);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const h = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${y}/${m}/${day} ${h}:${min}`;
+}
+
+/**
+ * 搜索高亮
+ * @param {string} text
+ * @param {string} keyword
+ * @returns {string} 含 <span class="highlight"> 的 HTML
+ */
+function highlightText(text, keyword) {
+  if (!keyword) return escapeHtml(text);
+  const escaped = escapeHtml(text);
+  const escapedKw = escapeHtml(keyword);
+  const regex = new RegExp(escapedKw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+  return escaped.replace(regex, match => `<span class="highlight">${match}</span>`);
+}
+
+/**
+ * 初始化：从 storage 加载数据
+ */
+async function init() {
+  try {
+    const [catResp, tweetResp] = await Promise.all([
+      chrome.runtime.sendMessage({ action: 'getCategories' }),
+      chrome.runtime.sendMessage({ action: 'getTweets' })
+    ]);
+    if (catResp.success) categories = catResp.data;
+    if (tweetResp.success) tweets = tweetResp.data;
+  } catch (err) {
+    const result = await chrome.storage.local.get(['twitter_categories', 'twitter_notes']);
+    categories = result.twitter_categories || ['未分类', 'todo待实践', '技术', '工具'];
+    tweets = result.twitter_notes || [];
+  }
+
+  renderAll();
+}
+
+/* ========== 渲染 ========== */
+
+/**
+ * 渲染整个页面
+ */
+function renderAll() {
+  renderCategories();
+  renderTweets();
+  updateCategoryTitle();
+  updateEmptyState();
+}
+
+/**
+ * 渲染分类列表
+ */
+function renderCategories() {
+  categoryList.innerHTML = '';
+
+  // 「全部」项
+  const allItem = createCategoryItem('全部', tweets.length, false);
+  if (currentCategory === '全部') allItem.classList.add('active');
+  allItem.addEventListener('click', () => selectCategory('全部'));
+  categoryList.appendChild(allItem);
+
+  // 各分类项
+  categories.forEach(cat => {
+    const count = tweets.filter(t => t.category === cat).length;
+    const editable = cat !== '未分类';
+    const item = createCategoryItem(cat, count, editable);
+    if (currentCategory === cat) item.classList.add('active');
+    item.addEventListener('click', () => {
+      if (editingCategory) return;
+      selectCategory(cat);
+    });
+    categoryList.appendChild(item);
+  });
+}
+
+/**
+ * 创建分类项 DOM
+ * @param {string} name
+ * @param {number} count
+ * @param {boolean} showActions
+ * @returns {HTMLElement}
+ */
+function createCategoryItem(name, count, showActions) {
+  const li = document.createElement('li');
+  li.className = 'category-item';
+
+  const nameSpan = document.createElement('span');
+  nameSpan.className = 'category-item-name';
+  nameSpan.textContent = name;
+
+  const countSpan = document.createElement('span');
+  countSpan.className = 'category-item-count';
+  countSpan.textContent = count;
+
+  li.appendChild(nameSpan);
+  li.appendChild(countSpan);
+
+  if (showActions) {
+    const actions = document.createElement('span');
+    actions.className = 'category-item-actions';
+
+    const renameBtn = document.createElement('button');
+    renameBtn.className = 'cat-action-btn';
+    renameBtn.textContent = '✎';
+    renameBtn.title = '重命名';
+    renameBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      startRenameCategory(name, li);
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'cat-action-btn';
+    deleteBtn.textContent = '✕';
+    deleteBtn.title = '删除';
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showDeleteCategoryModal(name);
+    });
+
+    actions.appendChild(renameBtn);
+    actions.appendChild(deleteBtn);
+    li.appendChild(actions);
+  }
+
+  // 内联编辑区域
+  const editWrap = document.createElement('div');
+  editWrap.className = 'category-item-edit';
+  const editInput = document.createElement('input');
+  editInput.type = 'text';
+  editInput.maxLength = 20;
+  const editActions = document.createElement('div');
+  editActions.className = 'edit-actions';
+  const btnConfirm = document.createElement('button');
+  btnConfirm.className = 'btn-confirm';
+  btnConfirm.textContent = '确定';
+  const btnCancel = document.createElement('button');
+  btnCancel.className = 'btn-cancel';
+  btnCancel.textContent = '取消';
+  editActions.appendChild(btnConfirm);
+  editActions.appendChild(btnCancel);
+  editWrap.appendChild(editInput);
+  editWrap.appendChild(editActions);
+
+  btnConfirm.addEventListener('click', (e) => {
+    e.stopPropagation();
+    confirmRenameCategory(name, editInput.value.trim(), li);
+  });
+  btnCancel.addEventListener('click', (e) => {
+    e.stopPropagation();
+    cancelEditCategory(li);
+  });
+  editInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.stopPropagation();
+      confirmRenameCategory(name, editInput.value.trim(), li);
+    } else if (e.key === 'Escape') {
+      e.stopPropagation();
+      cancelEditCategory(li);
+    }
+  });
+  editInput.addEventListener('blur', () => {
+    setTimeout(() => {
+      if (li.classList.contains('editing') &&
+          document.activeElement !== btnConfirm &&
+          document.activeElement !== btnCancel) {
+        cancelEditCategory(li);
+      }
+    }, 150);
+  });
+
+  li.appendChild(editWrap);
+  return li;
+}
+
+/**
+ * 切换选中分类
+ * @param {string} name
+ */
+function selectCategory(name) {
+  currentCategory = name;
+  searchInput.value = '';
+  searchKeyword = '';
+  renderAll();
+}
+
+/**
+ * 渲染推文卡片列表
+ */
+function renderTweets() {
+  tweetList.innerHTML = '';
+
+  // 按分类过滤
+  let filtered = tweets;
+  if (currentCategory !== '全部') {
+    filtered = filtered.filter(t => t.category === currentCategory);
+  }
+
+  // 按搜索关键词过滤
+  if (searchKeyword) {
+    const kw = searchKeyword.toLowerCase();
+    filtered = filtered.filter(t =>
+      t.text.toLowerCase().includes(kw) ||
+      t.author.toLowerCase().includes(kw) ||
+      (t.handle && t.handle.toLowerCase().includes(kw)) ||
+      (t.note && t.note.toLowerCase().includes(kw))
+    );
+  }
+
+  // 排序
+  const sortOrder = sortSelect.value;
+  filtered.sort((a, b) => {
+    if (sortOrder === 'oldest') return a.savedAt - b.savedAt;
+    return b.savedAt - a.savedAt; // newest first
+  });
+
+  filtered.forEach(tweet => {
+    tweetList.appendChild(createTweetCard(tweet));
+  });
+}
+
+/**
+ * 更新分类标题和计数
+ */
+function updateCategoryTitle() {
+  let filtered = tweets;
+  if (currentCategory !== '全部') {
+    filtered = filtered.filter(t => t.category === currentCategory);
+  }
+  if (searchKeyword) {
+    const kw = searchKeyword.toLowerCase();
+    filtered = filtered.filter(t =>
+      t.text.toLowerCase().includes(kw) ||
+      t.author.toLowerCase().includes(kw)
+    );
+  }
+  currentCatTitle.textContent = currentCategory;
+  currentCatCount.textContent = filtered.length + ' 条';
+}
+
+/**
+ * 更新空状态显示
+ */
+function updateEmptyState() {
+  const hasTweets = tweetList.children.length > 0;
+  emptyState.classList.toggle('hidden', hasTweets);
+}
+
+/**
+ * 创建推文卡片
+ * @param {Object} tweet
+ * @returns {HTMLElement}
+ */
+function createTweetCard(tweet) {
+  const card = document.createElement('div');
+  card.className = 'tweet-card';
+
+  // 头部：头像 + 作者 + handle
+  const header = document.createElement('div');
+  header.className = 'tweet-card-header';
+
+  if (tweet.avatar) {
+    const avatar = document.createElement('img');
+    avatar.className = 'tweet-card-avatar';
+    avatar.src = tweet.avatar;
+    avatar.loading = 'lazy';
+    avatar.onerror = () => { avatar.style.display = 'none'; };
+    header.appendChild(avatar);
+  }
+
+  const authorSpan = document.createElement('span');
+  authorSpan.className = 'tweet-card-author';
+  authorSpan.innerHTML = highlightText(tweet.author, searchKeyword);
+  header.appendChild(authorSpan);
+
+  if (tweet.handle) {
+    const separator = document.createElement('span');
+    separator.className = 'tweet-card-separator';
+    separator.textContent = ' · ';
+    header.appendChild(separator);
+
+    const handleSpan = document.createElement('span');
+    handleSpan.className = 'tweet-card-handle';
+    handleSpan.textContent = '@' + tweet.handle;
+    header.appendChild(handleSpan);
+  }
+
+  card.appendChild(header);
+
+  // 推文正文
+  const textEl = document.createElement('div');
+  textEl.className = 'tweet-card-text';
+  textEl.innerHTML = highlightText(tweet.text, searchKeyword);
+  card.appendChild(textEl);
+
+  // 笔记区域
+  const noteContainer = document.createElement('div');
+  noteContainer.className = 'tweet-card-note';
+
+  const noteInput = document.createElement('textarea');
+  noteInput.className = 'tweet-card-note-edit';
+  noteInput.placeholder = '添加笔记...';
+  noteInput.value = tweet.note || '';
+  noteInput.rows = 1;
+
+  // 自动调整高度
+  const autoResize = () => {
+    noteInput.style.height = 'auto';
+    noteInput.style.height = noteInput.scrollHeight + 'px';
+  };
+  noteInput.addEventListener('input', autoResize);
+
+  let saveTimeout;
+  noteInput.addEventListener('blur', async () => {
+    const newNote = noteInput.value.trim();
+    if (newNote === (tweet.note || '')) return;
+    tweet.note = newNote;
+    try {
+      await chrome.runtime.sendMessage({ action: 'updateNote', id: tweet.id, note: newNote });
+    } catch (err) {
+      // 直接写 storage 作为回退
+      const result = await chrome.storage.local.get('twitter_notes');
+      const list = result.twitter_notes || [];
+      const target = list.find(t => t.id === tweet.id);
+      if (target) target.note = newNote;
+      await chrome.storage.local.set({ twitter_notes: list });
+    }
+  });
+
+  if (tweet.note) {
+    autoResize();
+  }
+
+  noteContainer.appendChild(noteInput);
+  card.appendChild(noteContainer);
+
+  // 底部：时间 + 操作按钮
+  const footer = document.createElement('div');
+  footer.className = 'tweet-card-footer';
+
+  const time = document.createElement('span');
+  time.className = 'tweet-card-time';
+  time.textContent = formatTime(tweet.savedAt);
+  footer.appendChild(time);
+
+  const actions = document.createElement('div');
+  actions.className = 'tweet-card-actions';
+
+  // 查看原帖
+  if (tweet.url) {
+    const viewBtn = document.createElement('button');
+    viewBtn.className = 'tweet-card-action btn-view';
+    viewBtn.textContent = '查看原帖';
+    viewBtn.addEventListener('click', () => {
+      window.open(tweet.url, '_blank');
+    });
+    actions.appendChild(viewBtn);
+  }
+
+  // 复制正文
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'tweet-card-action';
+  copyBtn.textContent = '复制';
+  copyBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(tweet.text).then(() => {
+      copyBtn.textContent = '已复制';
+      setTimeout(() => { copyBtn.textContent = '复制'; }, 1500);
+    });
+  });
+  actions.appendChild(copyBtn);
+
+  // 删除
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'tweet-card-action btn-delete';
+  deleteBtn.textContent = '删除';
+  deleteBtn.addEventListener('click', () => showDeleteTweetModal(tweet.id));
+  actions.appendChild(deleteBtn);
+
+  footer.appendChild(actions);
+  card.appendChild(footer);
+
+  return card;
+}
+
+/* ========== 分类管理 ========== */
+
+/**
+ * 开始内联编辑分类名
+ * @param {string} name
+ * @param {HTMLElement} li
+ */
+function startRenameCategory(name, li) {
+  if (editingCategory) return;
+  editingCategory = name;
+  li.classList.add('editing');
+  const input = li.querySelector('.category-item-edit input');
+  input.value = name;
+  setTimeout(() => input.focus(), 50);
+}
+
+/**
+ * 确认重命名
+ * @param {string} oldName
+ * @param {string} newName
+ * @param {HTMLElement} li
+ */
+async function confirmRenameCategory(oldName, newName, li) {
+  if (!newName || newName === oldName) {
+    cancelEditCategory(li);
+    return;
+  }
+  try {
+    const resp = await chrome.runtime.sendMessage({ action: 'renameCategory', oldName, newName });
+    if (resp.success) {
+      categories = resp.data;
+      // 更新本地 tweets 数据中的分类名
+      tweets.forEach(t => {
+        if (t.category === oldName) t.category = newName;
+      });
+      if (currentCategory === oldName) currentCategory = newName;
+      editingCategory = null;
+      renderAll();
+    } else {
+      alert(resp.error);
+    }
+  } catch (err) {
+    alert('重命名失败');
+  }
+}
+
+/**
+ * 取消编辑
+ * @param {HTMLElement} li
+ */
+function cancelEditCategory(li) {
+  li.classList.remove('editing');
+  editingCategory = null;
+}
+
+/**
+ * 显示删除分类确认弹窗
+ * @param {string} name
+ */
+function showDeleteCategoryModal(name) {
+  const categories_ = categories.filter(c => c !== name);
+  const fallback = categories_[0] || '未分类';
+  deleteCatModalBody.querySelector('.highlight-name').textContent = name;
+  deleteCatModalBody.querySelector('.highlight-fallback').textContent = fallback;
+  deleteCatModal._deleteName = name;
+  deleteCatModal.classList.remove('hidden');
+}
+
+/**
+ * 确认删除分类
+ */
+async function confirmDeleteCategory() {
+  const name = deleteCatModal._deleteName;
+  try {
+    const resp = await chrome.runtime.sendMessage({ action: 'deleteCategory', name });
+    if (resp.success) {
+      categories = resp.data;
+      tweets = tweets.map(t => {
+        if (t.category === name) return { ...t, category: categories[0] || '未分类' };
+        return t;
+      });
+      if (currentCategory === name) currentCategory = '全部';
+      deleteCatModal.classList.add('hidden');
+      renderAll();
+    } else {
+      alert(resp.error);
+    }
+  } catch (err) {
+    alert('删除失败');
+  }
+}
+
+/* ========== 推文操作 ========== */
+
+/**
+ * 显示删除推文确认弹窗
+ * @param {string} id
+ */
+function showDeleteTweetModal(id) {
+  pendingDeleteTweetId = id;
+  deleteTweetModal.classList.remove('hidden');
+}
+
+/**
+ * 确认删除推文
+ */
+async function confirmDeleteTweet() {
+  const id = pendingDeleteTweetId;
+  if (!id) return;
+  try {
+    const resp = await chrome.runtime.sendMessage({ action: 'deleteTweet', id });
+    if (resp.success) {
+      tweets = tweets.filter(t => t.id !== id);
+      pendingDeleteTweetId = null;
+      deleteTweetModal.classList.add('hidden');
+      renderAll();
+    }
+  } catch (err) {
+    alert('删除失败');
+  }
+}
+
+/* ========== 导入导出 ========== */
+
+/**
+ * 导出数据为 JSON 文件
+ */
+async function exportData() {
+  try {
+    const data = {
+      version: '1.0.0',
+      exportedAt: new Date().toISOString(),
+      categories: categories,
+      tweets: tweets
+    };
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'twitter-notes-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert('导出失败');
+  }
+}
+
+/**
+ * 触发导入文件选择
+ */
+function importData() {
+  importFile.click();
+}
+
+/**
+ * 处理导入文件
+ * @param {File} file
+ */
+async function handleImportFile(file) {
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+
+    if (!data.tweets || !Array.isArray(data.tweets)) {
+      showResult('导入失败', '文件格式不正确，缺少推文数据。');
+      return;
+    }
+
+    // 合并分类
+    if (data.categories && Array.isArray(data.categories)) {
+      for (const cat of data.categories) {
+        if (!categories.includes(cat)) {
+          const resp = await chrome.runtime.sendMessage({ action: 'addCategory', name: cat });
+          if (resp.success) categories = resp.data;
+        }
+      }
+    }
+
+    // 合并推文（按 tweetId 去重）
+    const existingIds = new Set(tweets.map(t => t.tweetId));
+    const newTweets = [];
+    for (const tweet of data.tweets) {
+      if (!existingIds.has(tweet.tweetId)) {
+        // 确保分类存在
+        if (!categories.includes(tweet.category)) {
+          tweet.category = '未分类';
+        }
+        const resp = await chrome.runtime.sendMessage({ action: 'saveTweet', data: tweet });
+        if (resp.success && resp.data) {
+          newTweets.push(resp.data);
+          existingIds.add(tweet.tweetId);
+        }
+      }
+    }
+
+    // 重新加载
+    const tweetResp = await chrome.runtime.sendMessage({ action: 'getTweets' });
+    if (tweetResp.success) tweets = tweetResp.data;
+
+    renderAll();
+    showResult('导入完成', `成功导入 ${newTweets.length} 条推文，跳过 ${data.tweets.length - newTweets.length} 条重复。`);
+  } catch (err) {
+    showResult('导入失败', '文件解析错误，请确认选择的是 JSON 格式的备份文件。');
+  }
+}
+
+/**
+ * 显示结果弹窗
+ * @param {string} title
+ * @param {string} body
+ */
+function showResult(title, body) {
+  resultModalTitle.textContent = title;
+  resultModalBody.textContent = body;
+  resultModal.classList.remove('hidden');
+}
+
+/* ========== 清空数据 ========== */
+
+/**
+ * 显示清空确认弹窗
+ */
+function showClearModal() {
+  clearModal.classList.remove('hidden');
+}
+
+/**
+ * 确认清空所有数据
+ */
+async function confirmClear() {
+  try {
+    await chrome.storage.local.set({
+      twitter_notes: [],
+      twitter_categories: ['未分类', 'todo待实践', '技术', '工具']
+    });
+    tweets = [];
+    categories = ['未分类', 'todo待实践', '技术', '工具'];
+    currentCategory = '全部';
+    searchKeyword = '';
+    searchInput.value = '';
+    clearModal.classList.add('hidden');
+    renderAll();
+  } catch (err) {
+    alert('清空失败');
+  }
+}
+
+/* ========== 事件绑定 ========== */
+
+btnAddCat.addEventListener('click', () => {
+  newCatInput.classList.toggle('hidden');
+  if (!newCatInput.classList.contains('hidden')) {
+    inputCatName.focus();
+  }
+});
+
+btnConfirmCat.addEventListener('click', async () => {
+  const name = inputCatName.value.trim();
+  if (!name) return;
+  try {
+    const resp = await chrome.runtime.sendMessage({ action: 'addCategory', name });
+    if (resp.success) {
+      categories = resp.data;
+      inputCatName.value = '';
+      newCatInput.classList.add('hidden');
+      renderAll();
+    } else {
+      alert(resp.error);
+    }
+  } catch (err) {
+    alert('新建分类失败');
+  }
+});
+
+btnCancelCat.addEventListener('click', () => {
+  inputCatName.value = '';
+  newCatInput.classList.add('hidden');
+});
+
+inputCatName.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') btnConfirmCat.click();
+  if (e.key === 'Escape') btnCancelCat.click();
+});
+
+searchInput.addEventListener('input', () => {
+  searchKeyword = searchInput.value.trim();
+  renderTweets();
+  updateCategoryTitle();
+  updateEmptyState();
+});
+
+sortSelect.addEventListener('change', () => {
+  renderTweets();
+});
+
+btnExport.addEventListener('click', exportData);
+btnImport.addEventListener('click', importData);
+
+importFile.addEventListener('change', () => {
+  const file = importFile.files[0];
+  if (file) {
+    handleImportFile(file);
+    importFile.value = '';
+  }
+});
+
+btnClear.addEventListener('click', showClearModal);
+
+/* 弹窗事件 */
+btnCatModalCancel.addEventListener('click', () => deleteCatModal.classList.add('hidden'));
+btnCatModalConfirm.addEventListener('click', confirmDeleteCategory);
+
+btnTweetModalCancel.addEventListener('click', () => {
+  deleteTweetModal.classList.add('hidden');
+  pendingDeleteTweetId = null;
+});
+btnTweetModalConfirm.addEventListener('click', confirmDeleteTweet);
+
+btnClearModalCancel.addEventListener('click', () => clearModal.classList.add('hidden'));
+btnClearModalConfirm.addEventListener('click', confirmClear);
+
+btnResultModalOk.addEventListener('click', () => resultModal.classList.add('hidden'));
+
+/* 点击弹窗遮罩关闭 */
+[deleteCatModal, deleteTweetModal, clearModal, resultModal].forEach(modal => {
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.classList.add('hidden');
+  });
+});
+
+/* 点击其他地方关闭分类下拉 */
+document.addEventListener('click', () => {
+  document.querySelectorAll('.cat-dropdown-panel.open').forEach(p => p.classList.remove('open'));
+  document.querySelectorAll('.cat-dropdown-trigger.open').forEach(t => t.classList.remove('open'));
+});
+
+// 启动
+init();
