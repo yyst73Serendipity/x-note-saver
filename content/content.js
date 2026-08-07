@@ -33,13 +33,68 @@ function findTweetElements() {
 }
 
 /**
- * 提取推文正文
+ * 点击推文中的「显示更多」链接，展开被截断的长推文
  * @param {Element} tweetEl
- * @returns {string}
+ * @returns {Promise<void>}
  */
-function extractTweetText(tweetEl) {
+async function expandTweetText(tweetEl) {
   const textEl = tweetEl.querySelector('[data-testid="tweetText"]');
-  return textEl ? textEl.textContent.trim() : '';
+  if (!textEl) return;
+
+  // 检测截断标记：tweetText 内或紧邻后有「显示更多 / Show more」等链接
+  const expandSelectors = [
+    'a[role="link"]',
+    'span[role="button"]',
+    'button',
+    'span',
+    'div[role="button"]'
+  ];
+  for (const sel of expandSelectors) {
+    for (const el of textEl.querySelectorAll(sel)) {
+      const text = el.textContent.trim();
+      if (/显示更多|Show more|查看更多|展开|阅读更多|Read more/i.test(text)) {
+        el.click();
+        // 等待 DOM 更新
+        await new Promise(resolve => setTimeout(resolve, 300));
+        return;
+      }
+    }
+  }
+
+  // 备用：检查 textEl 同级或父级中是否有展开按钮
+  const parent = textEl.parentElement;
+  if (parent) {
+    const allSpans = parent.querySelectorAll('span');
+    for (const span of allSpans) {
+      const text = span.textContent.trim();
+      if (/显示更多|Show more|查看更多|展开|阅读更多|Read more/i.test(text)) {
+        span.click();
+        await new Promise(resolve => setTimeout(resolve, 300));
+        return;
+      }
+    }
+  }
+}
+
+/**
+ * 提取推文正文（自动展开截断的长推文）
+ * @param {Element} tweetEl
+ * @returns {Promise<string>}
+ */
+async function extractTweetText(tweetEl) {
+  await expandTweetText(tweetEl);
+  const textEl = tweetEl.querySelector('[data-testid="tweetText"]');
+  if (!textEl) return '';
+
+  // 移除「显示更多」残留在文本末尾的链接文字
+  const clone = textEl.cloneNode(true);
+  clone.querySelectorAll('a[role="link"], span').forEach(el => {
+    if (/显示更多|Show more|查看更多|展开/i.test(el.textContent.trim())) {
+      el.remove();
+    }
+  });
+
+  return clone.textContent.trim();
 }
 
 /**
@@ -122,12 +177,12 @@ function isTweetSaved(tweetId) {
 /**
  * 从推文元素中提取完整数据
  * @param {Element} tweetEl
- * @returns {Object}
+ * @returns {Promise<Object>}
  */
-function extractTweetData(tweetEl) {
+async function extractTweetData(tweetEl) {
   const url = extractTweetUrl(tweetEl);
   const tweetId = extractTweetId(url);
-  const text = extractTweetText(tweetEl);
+  const text = await extractTweetText(tweetEl);
   const { author, handle } = extractAuthorInfo(tweetEl);
 
   return {
@@ -391,10 +446,10 @@ function refreshButtons() {
  * 在推文中注入收藏按钮
  * @param {Element} tweetEl
  */
-function injectSaveButton(tweetEl) {
+async function injectSaveButton(tweetEl) {
   if (tweetEl.querySelector(`.${PREFIX}-btn`)) return;
 
-  const text = extractTweetText(tweetEl);
+  const text = await extractTweetText(tweetEl);
   if (!text || text.length < 2) return;
 
   const url = extractTweetUrl(tweetEl);
@@ -407,7 +462,7 @@ function injectSaveButton(tweetEl) {
   const saved = isTweetSaved(tweetId);
   const btn = createSaveButton(saved);
 
-  btn.addEventListener('click', (e) => {
+  btn.addEventListener('click', async (e) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -416,7 +471,7 @@ function injectSaveButton(tweetEl) {
       return;
     }
 
-    const tweetData = extractTweetData(tweetEl);
+    const tweetData = await extractTweetData(tweetEl);
     const picker = createCategoryPicker(tweetData, btn);
     document.body.appendChild(picker);
     positionPicker(btn);
