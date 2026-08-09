@@ -49,7 +49,57 @@ function cleanTranslationTags(el) {
 }
 
 /**
- * fetch 推文详情页，提取完整正文
+ * 递归遍历 DOM 树，将节点转为文本
+ * 仅 <br> 产生换行，其余元素行内拼接，不额外分段
+ * @param {Node} node
+ * @returns {string}
+ */
+function extractNodeText(node) {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent;
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) {
+    return '';
+  }
+
+  const tag = node.tagName.toLowerCase();
+
+  if (tag === 'br') {
+    return '\n';
+  }
+
+  // emoji 图片取其 alt 文本
+  if (tag === 'img') {
+    return node.getAttribute('alt') || '';
+  }
+
+  let result = '';
+  for (const child of node.childNodes) {
+    result += extractNodeText(child);
+  }
+  return result;
+}
+
+/**
+ * 从 tweetText DOM 提取文本，保留段落结构
+ * 递归遍历整棵树，仅 <br> 产生换行，段落间距由连续 <br> 自然产生
+ * @param {Element} el - tweetText 容器元素
+ * @returns {string}
+ */
+function extractTextWithParagraphs(el) {
+  let result = extractNodeText(el);
+  // 压缩多余空行：3+ 连续换行 → 两个换行（一个段落间距）
+  result = result.replace(/\n{3,}/g, '\n\n');
+  // 压缩行内多余空白，但不影响换行
+  result = result.replace(/[^\S\n]+/g, ' ');
+  // 清理换行两侧多余空格
+  result = result.replace(/ *\n */g, '\n');
+  // 去除首尾空白
+  return result.trim();
+}
+
+/**
+ * fetch 推文详情页，提取完整正文（保留段落）
  * 浏览器级别的正常请求，与用户手动打开详情页行为一致，无爬虫风险
  * @param {string} tweetUrl - 推文链接
  * @returns {Promise<string>} 完整推文正文，失败时返回空字符串
@@ -66,7 +116,7 @@ async function fetchTweetFullText(tweetUrl) {
     if (!textEl) return '';
 
     const clone = cleanTranslationTags(textEl.cloneNode(true));
-    return clone.textContent.trim();
+    return extractTextWithParagraphs(clone);
   } catch {
     return '';
   }
@@ -74,25 +124,34 @@ async function fetchTweetFullText(tweetUrl) {
 
 /**
  * 提取推文正文
- * 优先 fetch 详情页获取完整文本（解决长推文截断），失败时回退到 DOM 提取
+ * - 详情页（/status/ 路径）：用户已展开全文，直接用 DOM 提取
+ * - 时间线/列表页：优先 fetch 详情页，失败回退到 DOM 提取
  * @param {Element} tweetEl
  * @returns {Promise<string>}
  */
 async function extractTweetText(tweetEl) {
   const url = extractTweetUrl(tweetEl);
+  const isDetailPage = window.location.pathname.includes('/status/');
 
-  // 优先：fetch 详情页获取完整正文
+  // 详情页：DOM 中已是完整展开的文本，不走 fetch
+  if (isDetailPage) {
+    const textEl = tweetEl.querySelector('[data-testid="tweetText"]');
+    if (!textEl) return '';
+    const clone = cleanTranslationTags(textEl.cloneNode(true));
+    return extractTextWithParagraphs(clone);
+  }
+
+  // 时间线/列表页：优先 fetch 获取完整正文（服务端可能有截断，但比 DOM 截断好）
   if (url) {
     const fullText = await fetchTweetFullText(url);
     if (fullText) return fullText;
   }
 
-  // 兜底：DOM 提取（fetch 失败或推文本身不长时）
+  // 兜底：DOM 提取
   const textEl = tweetEl.querySelector('[data-testid="tweetText"]');
   if (!textEl) return '';
-
   const clone = cleanTranslationTags(textEl.cloneNode(true));
-  return clone.textContent.trim();
+  return extractTextWithParagraphs(clone);
 }
 
 /**
@@ -129,7 +188,9 @@ function extractTweetUrl(tweetEl) {
   const links = tweetEl.querySelectorAll('a[href*="/status/"]');
   for (const a of links) {
     const href = a.getAttribute('href');
-    if (href && /\/status\/\d+/.test(href)) {
+    if (href && /\/status\/\d+(\/|$|\?)/.test(href)) {
+      // 排除图片/视频子页面链接，如 /status/123/photo/1
+      if (href.includes('/photo/') || href.includes('/video/')) continue;
       // 取时间戳链接（通常是最具体的推文链接）
       const url = new URL(href, window.location.origin);
       return url.origin + url.pathname;
