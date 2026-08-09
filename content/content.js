@@ -33,67 +33,65 @@ function findTweetElements() {
 }
 
 /**
- * 点击推文中的「显示更多」链接，展开被截断的长推文
- * @param {Element} tweetEl
- * @returns {Promise<void>}
+ * 清理翻译插件注入的元素（Google 翻译、沉浸式翻译等）
+ * 翻译插件通常在原文旁插入 <font> 标签或带特定属性的元素
+ * @param {Element} el - 已克隆的 DOM 节点
+ * @returns {Element} 清理后的节点
  */
-async function expandTweetText(tweetEl) {
-  const textEl = tweetEl.querySelector('[data-testid="tweetText"]');
-  if (!textEl) return;
+function cleanTranslationTags(el) {
+  // Google 翻译注入的 <font> 标签
+  el.querySelectorAll('font').forEach(f => f.remove());
+  // 沉浸式翻译 / 双语翻译插件标记
+  el.querySelectorAll('[class*="immersive"], [class*="translated"], [class*="trans-"]').forEach(e => e.remove());
+  // 带翻译相关属性的元素
+  el.querySelectorAll('[data-translation], [data-original]').forEach(e => e.remove());
+  return el;
+}
 
-  // 检测截断标记：tweetText 内或紧邻后有「显示更多 / Show more」等链接
-  const expandSelectors = [
-    'a[role="link"]',
-    'span[role="button"]',
-    'button',
-    'span',
-    'div[role="button"]'
-  ];
-  for (const sel of expandSelectors) {
-    for (const el of textEl.querySelectorAll(sel)) {
-      const text = el.textContent.trim();
-      if (/显示更多|Show more|查看更多|展开|阅读更多|Read more/i.test(text)) {
-        el.click();
-        // 等待 DOM 更新
-        await new Promise(resolve => setTimeout(resolve, 300));
-        return;
-      }
-    }
-  }
+/**
+ * fetch 推文详情页，提取完整正文
+ * 浏览器级别的正常请求，与用户手动打开详情页行为一致，无爬虫风险
+ * @param {string} tweetUrl - 推文链接
+ * @returns {Promise<string>} 完整推文正文，失败时返回空字符串
+ */
+async function fetchTweetFullText(tweetUrl) {
+  try {
+    const resp = await fetch(tweetUrl, { credentials: 'include' });
+    if (!resp.ok) return '';
+    const html = await resp.text();
 
-  // 备用：检查 textEl 同级或父级中是否有展开按钮
-  const parent = textEl.parentElement;
-  if (parent) {
-    const allSpans = parent.querySelectorAll('span');
-    for (const span of allSpans) {
-      const text = span.textContent.trim();
-      if (/显示更多|Show more|查看更多|展开|阅读更多|Read more/i.test(text)) {
-        span.click();
-        await new Promise(resolve => setTimeout(resolve, 300));
-        return;
-      }
-    }
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const textEl = doc.querySelector('[data-testid="tweetText"]');
+    if (!textEl) return '';
+
+    const clone = cleanTranslationTags(textEl.cloneNode(true));
+    return clone.textContent.trim();
+  } catch {
+    return '';
   }
 }
 
 /**
- * 提取推文正文（自动展开截断的长推文）
+ * 提取推文正文
+ * 优先 fetch 详情页获取完整文本（解决长推文截断），失败时回退到 DOM 提取
  * @param {Element} tweetEl
  * @returns {Promise<string>}
  */
 async function extractTweetText(tweetEl) {
-  await expandTweetText(tweetEl);
+  const url = extractTweetUrl(tweetEl);
+
+  // 优先：fetch 详情页获取完整正文
+  if (url) {
+    const fullText = await fetchTweetFullText(url);
+    if (fullText) return fullText;
+  }
+
+  // 兜底：DOM 提取（fetch 失败或推文本身不长时）
   const textEl = tweetEl.querySelector('[data-testid="tweetText"]');
   if (!textEl) return '';
 
-  // 移除「显示更多」残留在文本末尾的链接文字
-  const clone = textEl.cloneNode(true);
-  clone.querySelectorAll('a[role="link"], span').forEach(el => {
-    if (/显示更多|Show more|查看更多|展开/i.test(el.textContent.trim())) {
-      el.remove();
-    }
-  });
-
+  const clone = cleanTranslationTags(textEl.cloneNode(true));
   return clone.textContent.trim();
 }
 
