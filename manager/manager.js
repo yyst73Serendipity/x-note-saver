@@ -362,45 +362,79 @@ function createTweetCard(tweet) {
   textEl.innerHTML = highlightText(tweet.text, searchKeyword);
   card.appendChild(textEl);
 
-  // 笔记区域
+  // 笔记区域（hover 时显示，有笔记时始终可见）
   const noteContainer = document.createElement('div');
-  noteContainer.className = 'tweet-card-note';
+  noteContainer.className = 'tweet-card-note-container';
 
-  const noteInput = document.createElement('textarea');
-  noteInput.className = 'tweet-card-note-edit';
-  noteInput.placeholder = '添加笔记...';
-  noteInput.value = tweet.note || '';
-  noteInput.rows = 1;
+  // 查看态
+  const noteView = document.createElement('div');
+  noteView.className = 'tweet-card-note-view';
+  noteView.textContent = tweet.note || '';
+  noteView.addEventListener('click', () => {
+    noteView.style.display = 'none';
+    noteEdit.style.display = 'block';
+    requestAnimationFrame(() => {
+      noteEdit.style.height = 'auto';
+      noteEdit.style.height = noteEdit.scrollHeight + 'px';
+    });
+    noteEdit.focus();
+  });
 
-  // 自动调整高度
-  const autoResize = () => {
-    noteInput.style.height = 'auto';
-    noteInput.style.height = noteInput.scrollHeight + 'px';
-  };
-  noteInput.addEventListener('input', autoResize);
-
-  let saveTimeout;
-  noteInput.addEventListener('blur', async () => {
-    const newNote = noteInput.value.trim();
-    if (newNote === (tweet.note || '')) return;
+  // 编辑态
+  const noteEdit = document.createElement('textarea');
+  noteEdit.className = 'tweet-card-note-edit';
+  noteEdit.placeholder = '添加笔记...';
+  noteEdit.value = tweet.note || '';
+  noteEdit.rows = 1;
+  noteEdit.addEventListener('input', () => {
+    noteEdit.style.height = 'auto';
+    noteEdit.style.height = noteEdit.scrollHeight + 'px';
+  });
+  noteEdit.addEventListener('blur', async () => {
+    noteEdit.style.height = 'auto';
+    noteEdit.style.height = noteEdit.scrollHeight + 'px';
+    const newNote = noteEdit.value.trim();
+    if (newNote === (tweet.note || '')) {
+      // 切回查看态
+      noteEdit.style.display = 'none';
+      if (newNote) {
+        noteView.style.display = 'block';
+      }
+      return;
+    }
     tweet.note = newNote;
+    noteView.textContent = newNote;
     try {
       await chrome.runtime.sendMessage({ action: 'updateNote', id: tweet.id, note: newNote });
     } catch (err) {
-      // 直接写 storage 作为回退
       const result = await chrome.storage.local.get('twitter_notes');
       const list = result.twitter_notes || [];
       const target = list.find(t => t.id === tweet.id);
       if (target) target.note = newNote;
       await chrome.storage.local.set({ twitter_notes: list });
     }
+    noteEdit.style.display = 'none';
+    noteView.style.display = newNote ? 'block' : 'none';
+    if (newNote) {
+      noteContainer.classList.add('has-note');
+    } else {
+      noteContainer.classList.remove('has-note');
+    }
   });
 
+  // 初始状态：有笔记显示查看态并常驻，无笔记 hover 才显示
   if (tweet.note) {
-    autoResize();
+    noteContainer.classList.add('has-note');
+    noteView.style.display = 'block';
+    noteEdit.style.display = 'none';
+  } else {
+    noteContainer.classList.remove('has-note');
+    noteView.style.display = 'none';
+    noteEdit.style.display = 'block';
   }
 
-  noteContainer.appendChild(noteInput);
+  noteContainer.appendChild(noteView);
+  noteContainer.appendChild(noteEdit);
   card.appendChild(noteContainer);
 
   // 底部：时间 + 操作按钮

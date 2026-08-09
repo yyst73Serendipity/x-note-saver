@@ -648,30 +648,64 @@ body {
   padding: 0 1px;
 }
 
-.tweet-card-note {
-  margin-top: 6px;
-  padding: 8px 12px;
-  background: #F7F9F9;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  color: var(--text-secondary);
-  line-height: 1.4;
-  border-left: 3px solid var(--accent);
+/* 笔记区域 — 默认隐藏，hover 卡片时显示，有笔记时始终可见 */
+.tweet-card-note-container {
+  display: none;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-subtle);
 }
 
-.tweet-card-note-edit {
-  width: 100%;
-  border: 1px solid var(--accent);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
+.tweet-card:hover .tweet-card-note-container {
+  display: block;
+}
+
+.tweet-card-note-container.has-note {
+  display: block;
+}
+
+/* 查看态 */
+.tweet-card-note-view {
   font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: #f6f8fb;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+
+.tweet-card-note-view:hover {
+  background: #eef0f4;
+}
+
+/* 编辑态 */
+.tweet-card-note-edit {
+  display: none;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  background: #fafbfd;
+  resize: none;
+  overflow: hidden;
   outline: none;
-  background: #fff;
-  color: var(--text-primary);
   font-family: inherit;
-  resize: vertical;
-  min-height: 40px;
+  transition: border-color 0.18s, box-shadow 0.18s;
   box-sizing: border-box;
+}
+
+.tweet-card-note-edit::placeholder {
+  color: #c4c8ce;
+}
+
+.tweet-card-note-edit:focus {
+  border-color: #9ca3af;
+  box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.12);
 }
 
 .tweet-card-footer {
@@ -706,15 +740,6 @@ body {
 .tweet-card-action:hover {
   background: var(--bg-sidebar-hover);
   color: var(--text-primary);
-}
-
-.tweet-card-action.btn-note {
-  color: var(--accent);
-  border-color: var(--accent);
-}
-
-.tweet-card-action.btn-note:hover {
-  background: rgba(29, 155, 240, 0.08);
 }
 
 .tweet-card-action.btn-view:hover {
