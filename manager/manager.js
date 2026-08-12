@@ -315,6 +315,92 @@ function updateEmptyState() {
   emptyState.classList.toggle('hidden', hasTweets);
 }
 
+/** 关闭所有打开的分类下拉面板 */
+function closeAllDropdowns() {
+  document.querySelectorAll('.cat-dropdown-panel.open').forEach(p => p.classList.remove('open'));
+  document.querySelectorAll('.cat-dropdown-trigger.open').forEach(t => t.classList.remove('open'));
+}
+
+/**
+ * 修改推文分类，同步更新 storage 和本地状态
+ * @param {string} id - 推文 ID
+ * @param {string} newCategory - 新分类名
+ */
+async function changeTweetCategory(id, newCategory) {
+  try {
+    const resp = await chrome.runtime.sendMessage({ action: 'updateCategory', id, category: newCategory });
+    if (resp.success) {
+      const tweet = tweets.find(t => t.id === id);
+      if (tweet) tweet.category = newCategory;
+      renderCategories();
+    }
+  } catch (err) {
+    const tweet = tweets.find(t => t.id === id);
+    if (tweet) tweet.category = newCategory;
+    await chrome.storage.local.set({ twitter_notes: tweets });
+    renderCategories();
+  }
+}
+
+/**
+ * 创建分类下拉组件
+ * @param {Object} tweet - 推文数据
+ * @returns {HTMLElement}
+ */
+function createCatDropdown(tweet) {
+  const wrap = document.createElement('span');
+  wrap.className = 'cat-dropdown-wrap';
+
+  const trigger = document.createElement('button');
+  trigger.className = 'cat-dropdown-trigger';
+  trigger.type = 'button';
+  trigger.innerHTML = `${escapeHtml(tweet.category)} <span class="cat-dropdown-arrow"></span>`;
+
+  const panel = document.createElement('div');
+  panel.className = 'cat-dropdown-panel';
+
+  categories.forEach(cat => {
+    const opt = document.createElement('button');
+    opt.className = 'cat-dropdown-option';
+    opt.type = 'button';
+    if (cat === tweet.category) opt.classList.add('selected');
+    opt.textContent = cat;
+    opt.addEventListener('click', (e) => {
+      e.stopPropagation();
+      changeTweetCategory(tweet.id, cat);
+      trigger.innerHTML = `${escapeHtml(cat)} <span class="cat-dropdown-arrow"></span>`;
+      panel.querySelectorAll('.cat-dropdown-option').forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+      panel.classList.remove('open');
+      trigger.classList.remove('open');
+    });
+    panel.appendChild(opt);
+  });
+
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const wasOpen = panel.classList.contains('open');
+    closeAllDropdowns();
+    if (!wasOpen) {
+      // 判断空间：若底部不足则向上弹出
+      const rect = trigger.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const panelHeight = 250;
+      if (spaceBelow < panelHeight && rect.top > panelHeight) {
+        panel.classList.add('upward');
+      } else {
+        panel.classList.remove('upward');
+      }
+      panel.classList.add('open');
+      trigger.classList.add('open');
+    }
+  });
+
+  wrap.appendChild(trigger);
+  wrap.appendChild(panel);
+  return wrap;
+}
+
 /**
  * 创建推文卡片
  * @param {Object} tweet
@@ -437,14 +523,20 @@ function createTweetCard(tweet) {
   noteContainer.appendChild(noteEdit);
   card.appendChild(noteContainer);
 
-  // 底部：时间 + 操作按钮
+  // 底部：时间 + 分类下拉 | 操作按钮
   const footer = document.createElement('div');
   footer.className = 'tweet-card-footer';
+
+  const footerLeft = document.createElement('div');
+  footerLeft.className = 'tweet-card-footer-left';
 
   const time = document.createElement('span');
   time.className = 'tweet-card-time';
   time.textContent = formatTime(tweet.savedAt);
-  footer.appendChild(time);
+  footerLeft.appendChild(time);
+
+  footerLeft.appendChild(createCatDropdown(tweet));
+  footer.appendChild(footerLeft);
 
   const actions = document.createElement('div');
   actions.className = 'tweet-card-actions';
@@ -817,10 +909,7 @@ btnResultModalOk.addEventListener('click', () => resultModal.classList.add('hidd
 });
 
 /* 点击其他地方关闭分类下拉 */
-document.addEventListener('click', () => {
-  document.querySelectorAll('.cat-dropdown-panel.open').forEach(p => p.classList.remove('open'));
-  document.querySelectorAll('.cat-dropdown-trigger.open').forEach(t => t.classList.remove('open'));
-});
+document.addEventListener('click', closeAllDropdowns);
 
 // 启动
 init();
