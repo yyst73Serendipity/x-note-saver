@@ -82,6 +82,9 @@ function highlightText(text, keyword) {
   // URL → 可点击链接
   html = html.replace(/(https?:\/\/[^\s<]+)/g,
     '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  // @mention → 可点击链接，跳转 Twitter 主页
+  html = html.replace(/@([A-Za-z0-9_]+)/g,
+    '<a href="https://x.com/$1" target="_blank" rel="noopener">@$1</a>');
   if (!keyword) return html;
   const escapedKw = escapeHtml(keyword);
   const regex = new RegExp(escapedKw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
