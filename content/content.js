@@ -234,6 +234,49 @@ function isTweetSaved(tweetId) {
 }
 
 /**
+ * 提取推文中的媒体内容（图片和视频封面）
+ * @param {Element} tweetEl
+ * @returns {{images: string[], videoThumbnail: string}}
+ */
+function extractMedia(tweetEl) {
+  const images = [];
+  // 图片：tweetPhoto 容器内的 img
+  tweetEl.querySelectorAll('[data-testid="tweetPhoto"] img').forEach(img => {
+    const src = img.src || img.getAttribute('src');
+    if (src && isTweetPhotoUrl(src)) {
+      images.push(getOriginalSizeUrl(src));
+    }
+  });
+  // 视频：videoPlayer 内 video 的 poster
+  let videoThumbnail = '';
+  const videoEl = tweetEl.querySelector('[data-testid="videoPlayer"] video');
+  if (videoEl) {
+    videoThumbnail = videoEl.getAttribute('poster') || '';
+  }
+  return { images, videoThumbnail };
+}
+
+/**
+ * 检查 URL 是否为推文照片（排除头像等）
+ * @param {string} url
+ * @returns {boolean}
+ */
+function isTweetPhotoUrl(url) {
+  return url.includes('twimg.com/media') || url.includes('pbs.twimg.com/media');
+}
+
+/**
+ * 将 twimg 缩略图 URL 转换为原始尺寸
+ * 去掉 ?format=...&name=... 参数即返回原图
+ * @param {string} url
+ * @returns {string}
+ */
+function getOriginalSizeUrl(url) {
+  // 提取 base，去掉 name= 参数恢复原图
+  return url.replace(/\?.*$/, '') + '?format=jpg&name=orig';
+}
+
+/**
  * 从推文元素中提取完整数据
  * @param {Element} tweetEl
  * @returns {Promise<Object>}
@@ -243,6 +286,7 @@ async function extractTweetData(tweetEl) {
   const tweetId = extractTweetId(url);
   const text = await extractTweetText(tweetEl);
   const { author, handle } = extractAuthorInfo(tweetEl);
+  const media = extractMedia(tweetEl);
 
   return {
     tweetId,
@@ -251,6 +295,8 @@ async function extractTweetData(tweetEl) {
     author,
     handle,
     avatar: extractAvatar(tweetEl),
+    images: media.images,
+    videoThumbnail: media.videoThumbnail,
     category: '未分类',
     note: '',
     postTime: ''

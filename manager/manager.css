@@ -658,6 +658,82 @@ body {
   text-decoration: underline;
 }
 
+/* ===== 媒体区域（图片/视频缩略图） ===== */
+.tweet-card-media {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.tweet-card-media.single {
+  flex-wrap: nowrap;
+}
+
+/* 多张媒体 2 列网格 */
+.tweet-card-media.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.tweet-card-img-wrap {
+  position: relative;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid var(--border-card);
+  aspect-ratio: 16 / 9;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tweet-card-img-wrap:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.tweet-card-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.tweet-card-video-wrap {
+  position: relative;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid var(--border-card);
+  aspect-ratio: 16 / 9;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tweet-card-video-wrap:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.tweet-card-video-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* 播放按钮叠加层 */
+.tweet-card-video-wrap::after {
+  content: '\25B6';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+}
+
 /* 笔记区域 — 默认隐藏，hover 卡片时显示，有笔记时始终可见 */
 .tweet-card-note-container {
   display: none;

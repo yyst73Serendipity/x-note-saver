@@ -505,6 +505,52 @@ function createTweetCard(tweet) {
   textEl.innerHTML = highlightText(tweet.text, searchKeyword);
   card.appendChild(textEl);
 
+  // 媒体区域（图片缩略图 / 视频封面）
+  const hasImages = tweet.images && tweet.images.length > 0;
+  const hasVideo = !!(tweet.videoThumbnail);
+  if (hasImages || hasVideo) {
+    const mediaEl = document.createElement('div');
+    mediaEl.className = 'tweet-card-media';
+    // 总媒体数 ≥ 2 时使用 2 列网格
+    const totalCount = (hasImages ? tweet.images.length : 0) + (hasVideo ? 1 : 0);
+    if (totalCount >= 2) {
+      mediaEl.classList.add('grid');
+    } else {
+      mediaEl.classList.add('single');
+    }
+
+    // 图片缩略图
+    if (hasImages) {
+      tweet.images.forEach(imgUrl => {
+        const link = document.createElement('a');
+        link.className = 'tweet-card-img-wrap';
+        link.href = tweet.url;
+        link.target = '_blank';
+        const img = document.createElement('img');
+        img.src = imgUrl;
+        img.loading = 'lazy';
+        link.appendChild(img);
+        mediaEl.appendChild(link);
+      });
+    }
+
+    // 视频封面
+    if (hasVideo) {
+      const link = document.createElement('a');
+      link.className = 'tweet-card-video-wrap';
+      link.href = tweet.url;
+      link.target = '_blank';
+      link.title = '点击去原帖观看视频';
+      const img = document.createElement('img');
+      img.src = tweet.videoThumbnail;
+      img.loading = 'lazy';
+      link.appendChild(img);
+      mediaEl.appendChild(link);
+    }
+
+    card.appendChild(mediaEl);
+  }
+
   // 笔记区域（hover 时显示，有笔记时始终可见）
   const noteContainer = document.createElement('div');
   noteContainer.className = 'tweet-card-note-container';
