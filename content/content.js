@@ -225,6 +225,19 @@ function extractAvatar(tweetEl) {
 }
 
 /**
+ * 提取推文发布时间
+ * @param {Element} tweetEl
+ * @returns {string} ISO 时间字符串
+ */
+function extractPostTime(tweetEl) {
+  const timeEl = tweetEl.querySelector('time');
+  if (timeEl) {
+    return timeEl.getAttribute('datetime') || '';
+  }
+  return '';
+}
+
+/**
  * 判断推文是否已收藏（按 tweetId）
  * @param {string} tweetId
  * @returns {boolean}
@@ -295,11 +308,11 @@ async function extractTweetData(tweetEl) {
     author,
     handle,
     avatar: extractAvatar(tweetEl),
+    postTime: extractPostTime(tweetEl),
     images: media.images,
     videoThumbnail: media.videoThumbnail,
     category: '未分类',
-    note: '',
-    postTime: ''
+    note: ''
   };
 }
 

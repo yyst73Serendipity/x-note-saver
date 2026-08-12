@@ -72,6 +72,23 @@ function formatTime(timestamp) {
 }
 
 /**
+ * 格式化 ISO 时间字符串为可读形式
+ * @param {string} isoStr
+ * @returns {string}
+ */
+function formatPostTime(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const h = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${y}/${m}/${day} ${h}:${min}`;
+}
+
+/**
  * 搜索高亮
  * @param {string} text
  * @param {string} keyword
@@ -444,6 +461,20 @@ function createTweetCard(tweet) {
     handleSpan.className = 'tweet-card-handle';
     handleSpan.textContent = '@' + tweet.handle;
     header.appendChild(handleSpan);
+  }
+
+  // 推文发布时间
+  const postTime = formatPostTime(tweet.postTime);
+  if (postTime) {
+    const sep = document.createElement('span');
+    sep.className = 'tweet-card-separator';
+    sep.textContent = ' · ';
+    header.appendChild(sep);
+
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'tweet-card-post-time';
+    timeSpan.textContent = postTime;
+    header.appendChild(timeSpan);
   }
 
   card.appendChild(header);

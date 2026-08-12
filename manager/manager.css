@@ -627,6 +627,11 @@ body {
   color: var(--text-secondary);
 }
 
+.tweet-card-post-time {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
 .tweet-card-separator {
   color: var(--text-secondary);
   font-size: 13px;
