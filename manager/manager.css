@@ -648,6 +648,16 @@ body {
   padding: 0 1px;
 }
 
+.tweet-card-text a {
+  color: var(--accent);
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.tweet-card-text a:hover {
+  text-decoration: underline;
+}
+
 /* 笔记区域 — 默认隐藏，hover 卡片时显示，有笔记时始终可见 */
 .tweet-card-note-container {
   display: none;

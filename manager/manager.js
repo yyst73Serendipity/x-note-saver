@@ -78,11 +78,14 @@ function formatTime(timestamp) {
  * @returns {string} 含 <span class="highlight"> 的 HTML
  */
 function highlightText(text, keyword) {
-  if (!keyword) return escapeHtml(text);
-  const escaped = escapeHtml(text);
+  let html = escapeHtml(text);
+  // URL → 可点击链接
+  html = html.replace(/(https?:\/\/[^\s<]+)/g,
+    '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  if (!keyword) return html;
   const escapedKw = escapeHtml(keyword);
   const regex = new RegExp(escapedKw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-  return escaped.replace(regex, match => `<span class="highlight">${match}</span>`);
+  return html.replace(regex, match => `<span class="highlight">${match}</span>`);
 }
 
 /**
