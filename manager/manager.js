@@ -442,6 +442,57 @@ function createTweetCard(tweet) {
 
   card.appendChild(header);
 
+  // 信息栏：时间 + 分类下拉 | 操作按钮
+  const footer = document.createElement('div');
+  footer.className = 'tweet-card-footer';
+
+  const footerLeft = document.createElement('div');
+  footerLeft.className = 'tweet-card-footer-left';
+
+  const time = document.createElement('span');
+  time.className = 'tweet-card-time';
+  time.textContent = formatTime(tweet.savedAt);
+  footerLeft.appendChild(time);
+
+  footerLeft.appendChild(createCatDropdown(tweet));
+  footer.appendChild(footerLeft);
+
+  const actions = document.createElement('div');
+  actions.className = 'tweet-card-actions';
+
+  // 查看原帖
+  if (tweet.url) {
+    const viewBtn = document.createElement('button');
+    viewBtn.className = 'tweet-card-action btn-view';
+    viewBtn.textContent = '查看原帖';
+    viewBtn.addEventListener('click', () => {
+      window.open(tweet.url, '_blank');
+    });
+    actions.appendChild(viewBtn);
+  }
+
+  // 复制正文
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'tweet-card-action';
+  copyBtn.textContent = '复制';
+  copyBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(tweet.text).then(() => {
+      copyBtn.textContent = '已复制';
+      setTimeout(() => { copyBtn.textContent = '复制'; }, 1500);
+    });
+  });
+  actions.appendChild(copyBtn);
+
+  // 删除
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'tweet-card-action btn-delete';
+  deleteBtn.textContent = '删除';
+  deleteBtn.addEventListener('click', () => showDeleteTweetModal(tweet.id));
+  actions.appendChild(deleteBtn);
+
+  footer.appendChild(actions);
+  card.appendChild(footer);
+
   // 推文正文
   const textEl = document.createElement('div');
   textEl.className = 'tweet-card-text';
@@ -522,57 +573,6 @@ function createTweetCard(tweet) {
   noteContainer.appendChild(noteView);
   noteContainer.appendChild(noteEdit);
   card.appendChild(noteContainer);
-
-  // 底部：时间 + 分类下拉 | 操作按钮
-  const footer = document.createElement('div');
-  footer.className = 'tweet-card-footer';
-
-  const footerLeft = document.createElement('div');
-  footerLeft.className = 'tweet-card-footer-left';
-
-  const time = document.createElement('span');
-  time.className = 'tweet-card-time';
-  time.textContent = formatTime(tweet.savedAt);
-  footerLeft.appendChild(time);
-
-  footerLeft.appendChild(createCatDropdown(tweet));
-  footer.appendChild(footerLeft);
-
-  const actions = document.createElement('div');
-  actions.className = 'tweet-card-actions';
-
-  // 查看原帖
-  if (tweet.url) {
-    const viewBtn = document.createElement('button');
-    viewBtn.className = 'tweet-card-action btn-view';
-    viewBtn.textContent = '查看原帖';
-    viewBtn.addEventListener('click', () => {
-      window.open(tweet.url, '_blank');
-    });
-    actions.appendChild(viewBtn);
-  }
-
-  // 复制正文
-  const copyBtn = document.createElement('button');
-  copyBtn.className = 'tweet-card-action';
-  copyBtn.textContent = '复制';
-  copyBtn.addEventListener('click', () => {
-    navigator.clipboard.writeText(tweet.text).then(() => {
-      copyBtn.textContent = '已复制';
-      setTimeout(() => { copyBtn.textContent = '复制'; }, 1500);
-    });
-  });
-  actions.appendChild(copyBtn);
-
-  // 删除
-  const deleteBtn = document.createElement('button');
-  deleteBtn.className = 'tweet-card-action btn-delete';
-  deleteBtn.textContent = '删除';
-  deleteBtn.addEventListener('click', () => showDeleteTweetModal(tweet.id));
-  actions.appendChild(deleteBtn);
-
-  footer.appendChild(actions);
-  card.appendChild(footer);
 
   return card;
 }
