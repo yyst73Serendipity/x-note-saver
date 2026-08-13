@@ -560,6 +560,14 @@ function createTweetCard(tweet) {
         const img = document.createElement('img');
         img.src = imgUrl;
         img.loading = 'lazy';
+        // 历史坏数据（name=orig / format=jpg）加载失败时降级为 large
+        img.addEventListener('error', () => {
+          if (img.dataset.fallbackTried) return;
+          const fallback = imgUrl.replace(/name=[^&]*/, 'name=large');
+          if (fallback === imgUrl) return;
+          img.dataset.fallbackTried = 'true';
+          img.src = fallback;
+        });
         link.appendChild(img);
         mediaEl.appendChild(link);
       });

@@ -279,14 +279,13 @@ function isTweetPhotoUrl(url) {
 }
 
 /**
- * 将 twimg 缩略图 URL 转换为原始尺寸
- * 去掉 ?format=...&name=... 参数即返回原图
+ * 将 twimg 缩略图 URL 转换为较大的尺寸
+ * 保留原始 format（png/jpg），name 降级为 large（几乎每张图都有）
  * @param {string} url
  * @returns {string}
  */
 function getOriginalSizeUrl(url) {
-  // 提取 base，去掉 name= 参数恢复原图
-  return url.replace(/\?.*$/, '') + '?format=jpg&name=orig';
+  return url.replace(/name=[^&]*/, 'name=large');
 }
 
 /**
