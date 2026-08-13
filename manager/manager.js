@@ -45,6 +45,14 @@ const resultModalTitle = document.getElementById('result-modal-title');
 const resultModalBody = document.getElementById('result-modal-body');
 const btnResultModalOk = document.getElementById('btn-result-modal-ok');
 
+/* 存储配额条 DOM 引用 */
+const storageQuotaBar = document.getElementById('storage-quota-bar');
+const storageQuotaFill = document.getElementById('storage-quota-fill');
+const storageQuotaText = document.getElementById('storage-quota-text');
+
+/* storage.local 配额（字节），Chrome 默认 10MB */
+const STORAGE_QUOTA_BYTES = 10 * 1024 * 1024;
+
 /**
  * HTML 转义
  * @param {string} str
@@ -128,6 +136,34 @@ async function init() {
   renderAll();
 }
 
+/**
+ * 更新存储配额条
+ * 显示 storage.local 已用空间占比，≥80% 警告，≥95% 严重
+ */
+async function updateStorageQuota() {
+  try {
+    const bytesInUse = await chrome.storage.local.getBytesInUse(null);
+    const usedMb = bytesInUse / (1024 * 1024);
+    const quotaMb = STORAGE_QUOTA_BYTES / (1024 * 1024);
+    const percent = (bytesInUse / STORAGE_QUOTA_BYTES) * 100;
+
+    storageQuotaFill.style.width = Math.min(percent, 100) + '%';
+    storageQuotaText.textContent =
+      `本地存储 ${usedMb.toFixed(1)} / ${quotaMb} MB (${percent.toFixed(0)}%)`;
+
+    storageQuotaBar.classList.remove('warning', 'critical');
+    if (percent >= 95) {
+      storageQuotaBar.classList.add('critical');
+      storageQuotaText.textContent += ' — 空间即将耗尽，请尽快导出清理';
+    } else if (percent >= 80) {
+      storageQuotaBar.classList.add('warning');
+      storageQuotaText.textContent += ' — 空间即将用尽，建议导出后清理';
+    }
+  } catch (err) {
+    // getBytesInUse 失败时静默处理，不影响主流程
+  }
+}
+
 /* ========== 渲染 ========== */
 
 /**
@@ -138,6 +174,7 @@ function renderAll() {
   renderTweets();
   updateCategoryTitle();
   updateEmptyState();
+  updateStorageQuota();
 }
 
 /**
