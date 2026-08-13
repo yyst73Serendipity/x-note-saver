@@ -580,10 +580,11 @@ let scanTimer = null;
 function scanAndInject() {
   if (!isTweetPage()) return;
   if (scanTimer) clearTimeout(scanTimer);
-  scanTimer = setTimeout(() => {
+  // 浏览器空闲时注入按钮，不抢占页面渲染；降级回 setTimeout
+  scanTimer = (window.requestIdleCallback || ((cb) => setTimeout(cb, 300)))(() => {
     const tweetEls = findTweetElements();
     tweetEls.forEach(el => injectSaveButton(el));
-  }, 300);
+  });
 }
 
 /**
@@ -643,9 +644,8 @@ async function init() {
 
   scanAndInject();
 
-  // DOM 变化监测
+  // DOM 变化监测：仅扫描注入按钮，URL 变化交给路由事件和轮询检测
   const observer = new MutationObserver(() => {
-    checkUrlChange();
     scanAndInject();
   });
   observer.observe(document.body, { childList: true, subtree: true });
