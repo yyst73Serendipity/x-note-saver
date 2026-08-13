@@ -143,13 +143,22 @@ async function init() {
 async function updateStorageQuota() {
   try {
     const bytesInUse = await chrome.storage.local.getBytesInUse(null);
-    const usedMb = bytesInUse / (1024 * 1024);
     const quotaMb = STORAGE_QUOTA_BYTES / (1024 * 1024);
     const percent = (bytesInUse / STORAGE_QUOTA_BYTES) * 100;
 
-    storageQuotaFill.style.width = Math.min(percent, 100) + '%';
+    // 用量小于 1MB 时用 KB 显示，避免小数据量被四舍五入成 0.0 MB
+    let usedText;
+    if (bytesInUse < 1024 * 1024) {
+      usedText = (bytesInUse / 1024).toFixed(1) + ' KB';
+    } else {
+      usedText = (bytesInUse / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    // 进度条至少占 1% 宽度，让非空存储有视觉反馈
+    const fillPercent = bytesInUse > 0 ? Math.max(percent, 1) : 0;
+    storageQuotaFill.style.width = Math.min(fillPercent, 100) + '%';
     storageQuotaText.textContent =
-      `本地存储 ${usedMb.toFixed(1)} / ${quotaMb} MB (${percent.toFixed(0)}%)`;
+      `本地存储 ${usedText} / ${quotaMb} MB (${percent.toFixed(0)}%)`;
 
     storageQuotaBar.classList.remove('warning', 'critical');
     if (percent >= 95) {
