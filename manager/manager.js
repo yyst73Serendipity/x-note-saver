@@ -121,7 +121,7 @@ async function init() {
     if (tweetResp.success) tweets = tweetResp.data;
   } catch (err) {
     const result = await chrome.storage.local.get(['twitter_categories', 'twitter_notes']);
-    categories = result.twitter_categories || ['未分类', 'todo待实践', '技术', '工具'];
+    categories = result.twitter_categories || ['未分类'];
     tweets = result.twitter_notes || [];
   }
 
@@ -894,10 +894,10 @@ async function confirmClear() {
   try {
     await chrome.storage.local.set({
       twitter_notes: [],
-      twitter_categories: ['未分类', 'todo待实践', '技术', '工具']
+      twitter_categories: ['未分类']
     });
     tweets = [];
-    categories = ['未分类', 'todo待实践', '技术', '工具'];
+    categories = ['未分类'];
     currentCategory = '全部';
     searchKeyword = '';
     searchInput.value = '';

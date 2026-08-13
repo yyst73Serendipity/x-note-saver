@@ -4,7 +4,7 @@
  */
 
 /* 默认分类列表 */
-const DEFAULT_CATEGORIES = ['未分类', 'todo待实践', '技术', '工具'];
+const DEFAULT_CATEGORIES = ['未分类'];
 
 /* 存储键名 */
 const STORAGE_KEY_TWEETS = 'twitter_notes';

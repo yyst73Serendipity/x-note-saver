@@ -654,7 +654,7 @@ async function loadCategories() {
     const resp = await chrome.runtime.sendMessage({ action: 'getCategories' });
     if (resp.success) categories = resp.data;
   } catch (err) {
-    categories = ['未分类', 'todo待实践', '技术', '工具'];
+    categories = ['未分类'];
   }
 }
 
