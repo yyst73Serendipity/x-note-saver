@@ -36,7 +36,8 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   background-color: var(--bg-page);
   color: var(--text-primary);
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -49,7 +50,10 @@ body {
 .app {
   width: 100%;
   max-width: 1100px;
-  padding: 24px 24px 40px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 24px 0;
 }
 
 /* ===== 顶部栏 ===== */
@@ -60,6 +64,7 @@ body {
   margin-bottom: 20px;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
 }
 
 .header-left {
@@ -117,7 +122,9 @@ body {
 .main {
   display: flex;
   gap: 24px;
-  align-items: flex-start;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
 }
 
 /* ===== 左侧分类栏 ===== */
@@ -129,8 +136,8 @@ body {
   padding: 20px 0 12px;
   border: 1px solid var(--border-card);
   box-shadow: var(--shadow-card);
-  position: sticky;
-  top: 24px;
+  overflow-y: auto;
+  margin-bottom: 24px;
 }
 
 .sidebar-header {
@@ -475,6 +482,10 @@ body {
 .content {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-bottom: 24px;
 }
 
 /* ===== 搜索和排序栏 ===== */
@@ -483,6 +494,7 @@ body {
   align-items: center;
   gap: 10px;
   margin-bottom: 14px;
+  flex-shrink: 0;
 }
 
 .search-wrap {
@@ -554,6 +566,7 @@ body {
   margin-bottom: 14px;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
 }
 
 .category-title {
@@ -572,6 +585,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 /* ===== 推文卡片 ===== */
