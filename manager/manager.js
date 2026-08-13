@@ -800,7 +800,7 @@ async function exportData() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'twitter-notes-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+    a.download = 'twitter-notes-backup-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.json';
     a.click();
     URL.revokeObjectURL(url);
   } catch (err) {
