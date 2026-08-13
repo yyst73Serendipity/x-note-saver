@@ -11,6 +11,9 @@ let searchKeyword = '';
 let editingCategory = null;
 let pendingDeleteTweetId = null;
 
+/* 稍后阅读视图状态：true 表示当前显示「稍后阅读」入口 */
+let showReadLater = false;
+
 /* DOM 元素引用 */
 const categoryList = document.getElementById('category-list');
 const tweetList = document.getElementById('tweet-list');
@@ -200,22 +203,60 @@ function renderCategories() {
 
   // 「全部」项
   const allItem = createCategoryItem('全部', tweets.length, false);
-  if (currentCategory === '全部') allItem.classList.add('active');
+  if (currentCategory === '全部' && !showReadLater) allItem.classList.add('active');
   allItem.addEventListener('click', () => selectCategory('全部'));
   categoryList.appendChild(allItem);
+
+  // 「稍后阅读」虚拟项（独立于分类体系）
+  const readLaterCount = tweets.filter(t => t.readLater).length;
+  const readLaterItem = createReadLaterItem(readLaterCount);
+  if (showReadLater) readLaterItem.classList.add('active');
+  readLaterItem.addEventListener('click', () => {
+    if (editingCategory) return;
+    selectReadLater();
+  });
+  categoryList.appendChild(readLaterItem);
 
   // 各分类项
   categories.forEach(cat => {
     const count = tweets.filter(t => t.category === cat).length;
     const editable = cat !== '未分类';
     const item = createCategoryItem(cat, count, editable);
-    if (currentCategory === cat) item.classList.add('active');
+    if (currentCategory === cat && !showReadLater) item.classList.add('active');
     item.addEventListener('click', () => {
       if (editingCategory) return;
       selectCategory(cat);
     });
     categoryList.appendChild(item);
   });
+}
+
+/**
+ * 创建「稍后阅读」入口项 DOM
+ * @param {number} count - 标记数
+ * @returns {HTMLElement}
+ */
+function createReadLaterItem(count) {
+  const li = document.createElement('li');
+  li.className = 'category-item read-later';
+
+  const nameSpan = document.createElement('span');
+  nameSpan.className = 'category-item-name';
+  const icon = document.createElement('span');
+  icon.className = 'read-later-icon';
+  icon.textContent = '🔖';
+  const text = document.createElement('span');
+  text.textContent = '稍后阅读';
+  nameSpan.appendChild(icon);
+  nameSpan.appendChild(text);
+
+  const countSpan = document.createElement('span');
+  countSpan.className = 'category-item-count';
+  countSpan.textContent = count;
+
+  li.appendChild(nameSpan);
+  li.appendChild(countSpan);
+  return li;
 }
 
 /**
@@ -323,6 +364,18 @@ function createCategoryItem(name, count, showActions) {
  */
 function selectCategory(name) {
   currentCategory = name;
+  showReadLater = false;
+  searchInput.value = '';
+  searchKeyword = '';
+  renderAll();
+}
+
+/**
+ * 切换到「稍后阅读」视图
+ */
+function selectReadLater() {
+  currentCategory = '全部';
+  showReadLater = true;
   searchInput.value = '';
   searchKeyword = '';
   renderAll();
@@ -338,6 +391,11 @@ function renderTweets() {
   let filtered = tweets;
   if (currentCategory !== '全部') {
     filtered = filtered.filter(t => t.category === currentCategory);
+  }
+
+  // 按稍后阅读标记过滤
+  if (showReadLater) {
+    filtered = filtered.filter(t => t.readLater);
   }
 
   // 按搜索关键词过滤
@@ -371,6 +429,9 @@ function updateCategoryTitle() {
   if (currentCategory !== '全部') {
     filtered = filtered.filter(t => t.category === currentCategory);
   }
+  if (showReadLater) {
+    filtered = filtered.filter(t => t.readLater);
+  }
   if (searchKeyword) {
     const kw = searchKeyword.toLowerCase();
     filtered = filtered.filter(t =>
@@ -378,7 +439,7 @@ function updateCategoryTitle() {
       t.author.toLowerCase().includes(kw)
     );
   }
-  currentCatTitle.textContent = currentCategory;
+  currentCatTitle.textContent = showReadLater ? '稍后阅读' : currentCategory;
   currentCatCount.textContent = filtered.length + ' 条';
 }
 
@@ -413,6 +474,41 @@ async function changeTweetCategory(id, newCategory) {
     const tweet = tweets.find(t => t.id === id);
     if (tweet) tweet.category = newCategory;
     await chrome.storage.local.set({ twitter_notes: tweets });
+    renderCategories();
+  }
+}
+
+/**
+ * 切换推文的「稍后阅读」标记
+ * @param {string} id - 推文 ID
+ * @param {HTMLElement} btn - 标记按钮（用于更新视觉态）
+ */
+async function toggleReadLater(id, btn) {
+  const tweet = tweets.find(t => t.id === id);
+  if (!tweet) return;
+  const newState = !tweet.readLater;
+
+  try {
+    const resp = await chrome.runtime.sendMessage({ action: 'updateReadLater', id, readLater: newState });
+    if (resp.success) {
+      tweet.readLater = newState;
+    }
+  } catch (err) {
+    tweet.readLater = newState;
+    await chrome.storage.local.set({ twitter_notes: tweets });
+  }
+
+  // 更新按钮视觉态
+  if (newState) {
+    btn.classList.add('active');
+  } else {
+    btn.classList.remove('active');
+  }
+
+  // 若在「稍后阅读」视图中取消标记，移除后刷新列表；否则仅刷新侧栏计数
+  if (showReadLater && !newState) {
+    renderAll();
+  } else {
     renderCategories();
   }
 }
@@ -571,6 +667,14 @@ function createTweetCard(tweet) {
     });
   });
   actions.appendChild(copyBtn);
+
+  // 稍后阅读标记
+  const readLaterBtn = document.createElement('button');
+  readLaterBtn.className = 'tweet-card-action btn-read-later';
+  readLaterBtn.textContent = '稍后阅读';
+  if (tweet.readLater) readLaterBtn.classList.add('active');
+  readLaterBtn.addEventListener('click', () => toggleReadLater(tweet.id, readLaterBtn));
+  actions.appendChild(readLaterBtn);
 
   // 删除
   const deleteBtn = document.createElement('button');

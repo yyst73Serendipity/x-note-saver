@@ -1024,6 +1024,30 @@ body {
   border-color: rgba(244, 33, 46, 0.3);
 }
 
+/* 稍后阅读按钮 */
+.tweet-card-action.btn-read-later:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.tweet-card-action.btn-read-later.active {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* 左侧栏「稍后阅读」入口 */
+.category-item.read-later .category-item-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.category-item.read-later .read-later-icon {
+  font-size: 14px;
+}
+
 /* ===== 空状态 ===== */
 .empty-state {
   text-align: center;

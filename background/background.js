@@ -174,6 +174,21 @@ async function updateCategory(id, category) {
   return tweet;
 }
 
+/**
+ * 更新推文的「稍后阅读」标记
+ * @param {string} id - 推文 ID
+ * @param {boolean} readLater - 是否标记稍后阅读
+ * @returns {Promise<Object>} 更新后的推文
+ */
+async function updateReadLater(id, readLater) {
+  const tweets = await getTweets();
+  const tweet = tweets.find(t => t.id === id);
+  if (!tweet) throw new Error('推文不存在');
+  tweet.readLater = readLater;
+  await chrome.storage.local.set({ [STORAGE_KEY_TWEETS]: tweets });
+  return tweet;
+}
+
 /* 消息处理：根据 action 类型分发到对应的处理函数 */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const handlers = {
@@ -185,7 +200,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     deleteCategory:  () => deleteCategory(message.name),
     renameCategory:  () => renameCategory(message.oldName, message.newName),
     updateCategory:  () => updateCategory(message.id, message.category),
-    updateNote:      () => updateNote(message.id, message.note)
+    updateNote:      () => updateNote(message.id, message.note),
+    updateReadLater: () => updateReadLater(message.id, message.readLater)
   };
 
   const handler = handlers[message.action];
