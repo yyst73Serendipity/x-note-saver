@@ -60,7 +60,7 @@ async function saveTweet(tweet) {
   const newTweet = {
     ...tweet,
     id: generateId(),
-    savedAt: Date.now()
+    savedAt: tweet.savedAt || Date.now()
   };
   tweets.unshift(newTweet);
   await chrome.storage.local.set({ [STORAGE_KEY_TWEETS]: tweets });
