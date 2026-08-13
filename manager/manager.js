@@ -45,6 +45,12 @@ const resultModalTitle = document.getElementById('result-modal-title');
 const resultModalBody = document.getElementById('result-modal-body');
 const btnResultModalOk = document.getElementById('btn-result-modal-ok');
 
+/* 导入预览弹窗 DOM 引用 */
+const importPreviewModal = document.getElementById('import-preview-modal');
+const importPreviewBody = document.getElementById('import-preview-body');
+const btnPreviewCancel = document.getElementById('btn-preview-cancel');
+const btnPreviewConfirm = document.getElementById('btn-preview-confirm');
+
 /* 存储配额条 DOM 引用 */
 const storageQuotaBar = document.getElementById('storage-quota-bar');
 const storageQuotaFill = document.getElementById('storage-quota-fill');
@@ -871,54 +877,87 @@ function importData() {
 
 /**
  * 处理导入文件
+ * 第一阶段：解析文件，计算新增/跳过，弹预览让用户确认
  * @param {File} file
  */
 async function handleImportFile(file) {
+  let data;
   try {
     const text = await file.text();
-    const data = JSON.parse(text);
-
-    if (!data.tweets || !Array.isArray(data.tweets)) {
-      showResult('导入失败', '文件格式不正确，缺少推文数据。');
-      return;
-    }
-
-    // 合并分类
-    if (data.categories && Array.isArray(data.categories)) {
-      for (const cat of data.categories) {
-        if (!categories.includes(cat)) {
-          const resp = await chrome.runtime.sendMessage({ action: 'addCategory', name: cat });
-          if (resp.success) categories = resp.data;
-        }
-      }
-    }
-
-    // 合并推文（按 tweetId 去重）
-    const existingIds = new Set(tweets.map(t => t.tweetId));
-    const newTweets = [];
-    for (const tweet of data.tweets) {
-      if (!existingIds.has(tweet.tweetId)) {
-        // 确保分类存在
-        if (!categories.includes(tweet.category)) {
-          tweet.category = '未分类';
-        }
-        const resp = await chrome.runtime.sendMessage({ action: 'saveTweet', data: tweet });
-        if (resp.success && resp.data) {
-          newTweets.push(resp.data);
-          existingIds.add(tweet.tweetId);
-        }
-      }
-    }
-
-    // 重新加载
-    const tweetResp = await chrome.runtime.sendMessage({ action: 'getTweets' });
-    if (tweetResp.success) tweets = tweetResp.data;
-
-    renderAll();
-    showResult('导入完成', `成功导入 ${newTweets.length} 条推文，跳过 ${data.tweets.length - newTweets.length} 条重复。`);
+    data = JSON.parse(text);
   } catch (err) {
     showResult('导入失败', '文件解析错误，请确认选择的是 JSON 格式的备份文件。');
+    return;
   }
+
+  if (!data.tweets || !Array.isArray(data.tweets)) {
+    showResult('导入失败', '文件格式不正确，缺少推文数据。');
+    return;
+  }
+
+  // 统计：新增分类数、新增推文数、跳过重复数
+  const newCats = (data.categories || []).filter(cat => !categories.includes(cat));
+  const existingIds = new Set(tweets.map(t => t.tweetId));
+  const newTweets = data.tweets.filter(t => !existingIds.has(t.tweetId));
+
+  const html =
+    `文件共 <span class="num">${data.tweets.length}</span> 条推文，确认后将合并到当前收藏。<br>` +
+    `🗂️ 将新增分类 <span class="num num-add">${newCats.length}</span> 个，<br>` +
+    `📝 将新增推文 <span class="num num-add">${newTweets.length}</span> 条，<br>` +
+    `⏭️ 将跳过重复 <span class="num num-skip">${data.tweets.length - newTweets.length}</span> 条。`;
+
+  importPreviewBody.innerHTML = html;
+
+  // 暂存待导入数据，供确认阶段使用
+  importPreviewModal._pendingData = data;
+  importPreviewModal._pendingNewTweets = newTweets;
+
+  importPreviewModal.classList.remove('hidden');
+}
+
+/**
+ * 确认导入：执行合并写入
+ */
+async function confirmImport() {
+  const data = importPreviewModal._pendingData;
+  if (!data) return;
+  importPreviewModal.classList.add('hidden');
+
+  // 合并分类
+  if (data.categories && Array.isArray(data.categories)) {
+    for (const cat of data.categories) {
+      if (!categories.includes(cat)) {
+        const resp = await chrome.runtime.sendMessage({ action: 'addCategory', name: cat });
+        if (resp.success) categories = resp.data;
+      }
+    }
+  }
+
+  // 合并推文（按 tweetId 去重）
+  const existingIds = new Set(tweets.map(t => t.tweetId));
+  const newTweets = [];
+  for (const tweet of data.tweets) {
+    if (!existingIds.has(tweet.tweetId)) {
+      if (!categories.includes(tweet.category)) {
+        tweet.category = '未分类';
+      }
+      const resp = await chrome.runtime.sendMessage({ action: 'saveTweet', data: tweet });
+      if (resp.success && resp.data) {
+        newTweets.push(resp.data);
+        existingIds.add(tweet.tweetId);
+      }
+    }
+  }
+
+  // 重新加载
+  const tweetResp = await chrome.runtime.sendMessage({ action: 'getTweets' });
+  if (tweetResp.success) tweets = tweetResp.data;
+
+  renderAll();
+  showResult('导入完成', `成功导入 ${newTweets.length} 条推文，跳过 ${data.tweets.length - newTweets.length} 条重复。`);
+
+  importPreviewModal._pendingData = null;
+  importPreviewModal._pendingNewTweets = null;
 }
 
 /**
@@ -1038,10 +1077,24 @@ btnClearModalConfirm.addEventListener('click', confirmClear);
 
 btnResultModalOk.addEventListener('click', () => resultModal.classList.add('hidden'));
 
+/* 导入预览弹窗事件 */
+btnPreviewCancel.addEventListener('click', () => {
+  importPreviewModal.classList.add('hidden');
+  importPreviewModal._pendingData = null;
+  importPreviewModal._pendingNewTweets = null;
+});
+btnPreviewConfirm.addEventListener('click', confirmImport);
+
 /* 点击弹窗遮罩关闭 */
-[deleteCatModal, deleteTweetModal, clearModal, resultModal].forEach(modal => {
+[deleteCatModal, deleteTweetModal, clearModal, resultModal, importPreviewModal].forEach(modal => {
   modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.classList.add('hidden');
+    if (e.target === modal) {
+      if (modal === importPreviewModal) {
+        importPreviewModal._pendingData = null;
+        importPreviewModal._pendingNewTweets = null;
+      }
+      modal.classList.add('hidden');
+    }
   });
 });
 

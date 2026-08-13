@@ -443,6 +443,27 @@ body {
   font-weight: 600;
 }
 
+/* 导入预览正文 */
+.preview-body {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+.preview-body .num {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.preview-body .num-add {
+  color: var(--accent);
+}
+
+.preview-body .num-skip {
+  color: var(--text-secondary);
+}
+
 .modal-actions {
   display: flex;
   gap: 10px;
