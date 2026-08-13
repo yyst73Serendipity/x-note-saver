@@ -99,55 +99,13 @@ function extractTextWithParagraphs(el) {
 }
 
 /**
- * fetch 推文详情页，提取完整正文（保留段落）
- * 浏览器级别的正常请求，与用户手动打开详情页行为一致，无爬虫风险
- * @param {string} tweetUrl - 推文链接
- * @returns {Promise<string>} 完整推文正文，失败时返回空字符串
- */
-async function fetchTweetFullText(tweetUrl) {
-  try {
-    const resp = await fetch(tweetUrl, { credentials: 'include' });
-    if (!resp.ok) return '';
-    const html = await resp.text();
-
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    const textEl = doc.querySelector('[data-testid="tweetText"]');
-    if (!textEl) return '';
-
-    const clone = cleanTranslationTags(textEl.cloneNode(true));
-    return extractTextWithParagraphs(clone);
-  } catch {
-    return '';
-  }
-}
-
-/**
  * 提取推文正文
- * - 详情页（/status/ 路径）：用户已展开全文，直接用 DOM 提取
- * - 时间线/列表页：优先 fetch 详情页，失败回退到 DOM 提取
+ * 统一从当前页面 DOM 提取。详情页为完整正文；时间线页长推文可能被折叠截断，
+ * 需要完整正文时请先点开详情页再收藏
  * @param {Element} tweetEl
- * @returns {Promise<string>}
+ * @returns {string}
  */
-async function extractTweetText(tweetEl) {
-  const url = extractTweetUrl(tweetEl);
-  const isDetailPage = window.location.pathname.includes('/status/');
-
-  // 详情页：DOM 中已是完整展开的文本，不走 fetch
-  if (isDetailPage) {
-    const textEl = tweetEl.querySelector('[data-testid="tweetText"]');
-    if (!textEl) return '';
-    const clone = cleanTranslationTags(textEl.cloneNode(true));
-    return extractTextWithParagraphs(clone);
-  }
-
-  // 时间线/列表页：优先 fetch 获取完整正文（服务端可能有截断，但比 DOM 截断好）
-  if (url) {
-    const fullText = await fetchTweetFullText(url);
-    if (fullText) return fullText;
-  }
-
-  // 兜底：DOM 提取
+function extractTweetText(tweetEl) {
   const textEl = tweetEl.querySelector('[data-testid="tweetText"]');
   if (!textEl) return '';
   const clone = cleanTranslationTags(textEl.cloneNode(true));
@@ -296,7 +254,7 @@ function getOriginalSizeUrl(url) {
 async function extractTweetData(tweetEl) {
   const url = extractTweetUrl(tweetEl);
   const tweetId = extractTweetId(url);
-  const text = await extractTweetText(tweetEl);
+  const text = extractTweetText(tweetEl);
   const { author, handle } = extractAuthorInfo(tweetEl);
   const media = extractMedia(tweetEl);
 
@@ -566,7 +524,7 @@ function refreshButtons() {
 async function injectSaveButton(tweetEl) {
   if (tweetEl.querySelector(`.${PREFIX}-btn`)) return;
 
-  const text = await extractTweetText(tweetEl);
+  const text = extractTweetText(tweetEl);
   if (!text || text.length < 2) return;
 
   const url = extractTweetUrl(tweetEl);
