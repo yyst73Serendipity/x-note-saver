@@ -177,11 +177,15 @@ function extractTweetId(url) {
  * @returns {string}
  */
 function extractAvatar(tweetEl) {
-  const avatarImg = tweetEl.querySelector('img[src*="twimg.com"]');
+  // 优先匹配头像路径（profile_images），避免误取正文图片
+  const avatarImg = tweetEl.querySelector('img[src*="profile_images"]');
   if (avatarImg) {
     return avatarImg.src || '';
   }
-  // 备用：找第一个 img
+  // 备用：任意 twimg 图片
+  const twimgImg = tweetEl.querySelector('img[src*="twimg.com"]');
+  if (twimgImg) return twimgImg.src || '';
+  // 最后兜底：找第一个 img
   const firstImg = tweetEl.querySelector('img');
   return firstImg ? firstImg.src : '';
 }

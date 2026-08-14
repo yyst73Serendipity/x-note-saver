@@ -110,8 +110,8 @@ function formatPostTime(isoStr) {
  */
 function highlightText(text, keyword) {
   let html = escapeHtml(text);
-  // URL → 可点击链接
-  html = html.replace(/(https?:\/\/[^\s<]+)/g,
+  // URL → 可点击链接（排除引号，防止注入 href 属性）
+  html = html.replace(/(https?:\/\/[^\s<>"']+)/g,
     '<a href="$1" target="_blank" rel="noopener">$1</a>');
   // @mention → 可点击链接，跳转 Twitter 主页
   html = html.replace(/@([A-Za-z0-9_]+)/g,
