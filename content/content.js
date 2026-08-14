@@ -10,6 +10,10 @@ const PREFIX = 'tns';
 let categories = [];
 let savedTweetIds = new Set();
 
+/* 存储键名（与 background.js 保持一致） */
+const STORAGE_KEY_TWEETS = 'twitter_notes';
+const STORAGE_KEY_CATEGORIES = 'twitter_categories';
+
 /* 按钮图标 SVG — 星标，模仿 Twitter 原生按钮风格 */
 const SAVE_ICON = `
 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -633,6 +637,17 @@ async function init() {
   window.addEventListener('popstate', () => setTimeout(checkUrlChange, 300));
   window.addEventListener('hashchange', () => setTimeout(checkUrlChange, 300));
   setInterval(checkUrlChange, 1000);
+
+  // 存储变化监测：管理页增删改后，实时同步分类和已收藏状态
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'local') return;
+    if (changes[STORAGE_KEY_CATEGORIES]) {
+      loadCategories();
+    }
+    if (changes[STORAGE_KEY_TWEETS]) {
+      loadSavedTweetIds().then(() => refreshButtons());
+    }
+  });
 }
 
 if (document.readyState === 'loading') {
