@@ -356,7 +356,7 @@ function createCategoryPicker(tweetData, anchorEl) {
 
   const header = document.createElement('div');
   header.className = `${PREFIX}-picker-header`;
-  header.textContent = '选择分类，或点击外部自动归入「未分类」';
+  header.textContent = '选择分类，或点击外部取消';
   picker.appendChild(header);
 
   const list = document.createElement('div');
@@ -438,28 +438,8 @@ function createCategoryPicker(tweetData, anchorEl) {
   footer.appendChild(addBtn);
   picker.appendChild(footer);
 
-  // 点击外部 → 自动归入「未分类」
+  // 点击外部 → 关闭选择器，不收藏
   picker.addEventListener('click', (e) => e.stopPropagation());
-
-  const saveToDefault = async () => {
-    if (saving) return;
-    saving = true;
-    try {
-      const data = { ...tweetData, category: '未分类' };
-      const response = await chrome.runtime.sendMessage({ action: 'saveTweet', data });
-      if (response.success) {
-        savedTweetIds.add(tweetData.tweetId);
-        if (picker._closeHandler) document.removeEventListener('click', picker._closeHandler);
-        picker.remove();
-        activePicker = null;
-        refreshButtons();
-        showToast('已收入宝藏仓库 → 未分类');
-      }
-    } catch (err) {
-      showToast('收藏失败，请重试');
-    }
-    saving = false;
-  };
 
   const closeHandler = (e) => {
     if (!picker.contains(e.target)) {
@@ -467,7 +447,6 @@ function createCategoryPicker(tweetData, anchorEl) {
       picker.remove();
       activePicker = null;
       document.removeEventListener('click', closeHandler);
-      saveToDefault();
     }
   };
   picker._closeHandler = closeHandler;
