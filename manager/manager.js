@@ -59,9 +59,6 @@ const storageQuotaBar = document.getElementById('storage-quota-bar');
 const storageQuotaFill = document.getElementById('storage-quota-fill');
 const storageQuotaText = document.getElementById('storage-quota-text');
 
-/* storage.local 配额（字节），Chrome 默认 10MB */
-const STORAGE_QUOTA_BYTES = 10 * 1024 * 1024;
-
 /**
  * HTML 转义
  * @param {string} str
@@ -152,8 +149,10 @@ async function init() {
 async function updateStorageQuota() {
   try {
     const bytesInUse = await chrome.storage.local.getBytesInUse(null);
-    const quotaMb = STORAGE_QUOTA_BYTES / (1024 * 1024);
-    const percent = (bytesInUse / STORAGE_QUOTA_BYTES) * 100;
+    // 动态读取当前浏览器 storage.local 实际配额（老版本 5MB / 新版本 10MB）
+    const quotaBytes = chrome.storage.local.QUOTA_BYTES || (10 * 1024 * 1024);
+    const quotaMb = quotaBytes / (1024 * 1024);
+    const percent = (bytesInUse / quotaBytes) * 100;
 
     // 用量小于 1MB 时用 KB 显示，避免小数据量被四舍五入成 0.0 MB
     let usedText;
