@@ -704,7 +704,7 @@ function createTweetCard(tweet) {
   // 编辑笔记（图标按钮，弹出笔记弹窗）
   const editBtn = document.createElement('button');
   editBtn.className = 'tweet-card-icon-btn';
-  editBtn.title = '编辑笔记';
+  editBtn.setAttribute('data-tip', '编辑笔记');
   editBtn.innerHTML = EDIT_ICON;
   editBtn.addEventListener('click', () => openNoteModal(tweet));
   actions.appendChild(editBtn);
@@ -713,7 +713,7 @@ function createTweetCard(tweet) {
   if (tweet.url) {
     const viewBtn = document.createElement('button');
     viewBtn.className = 'tweet-card-icon-btn';
-    viewBtn.title = '查看原帖';
+    viewBtn.setAttribute('data-tip', '查看原帖');
     viewBtn.innerHTML = VIEW_ICON;
     viewBtn.addEventListener('click', () => {
       window.open(tweet.url, '_blank');
@@ -724,15 +724,15 @@ function createTweetCard(tweet) {
   // 复制正文
   const copyBtn = document.createElement('button');
   copyBtn.className = 'tweet-card-icon-btn';
-  copyBtn.title = '复制正文';
+  copyBtn.setAttribute('data-tip', '复制正文');
   copyBtn.innerHTML = COPY_ICON;
   copyBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(tweet.text).then(() => {
       copyBtn.innerHTML = CHECK_ICON;
-      copyBtn.title = '已复制';
+      copyBtn.setAttribute('data-tip', '已复制');
       setTimeout(() => {
         copyBtn.innerHTML = COPY_ICON;
-        copyBtn.title = '复制正文';
+        copyBtn.setAttribute('data-tip', '复制正文');
       }, 1500);
     });
   });
@@ -741,7 +741,7 @@ function createTweetCard(tweet) {
   // 稍后阅读标记
   const readLaterBtn = document.createElement('button');
   readLaterBtn.className = 'tweet-card-icon-btn';
-  readLaterBtn.title = '稍后阅读';
+  readLaterBtn.setAttribute('data-tip', '稍后阅读');
   readLaterBtn.innerHTML = tweet.readLater ? BOOKMARK_FILLED_ICON : BOOKMARK_ICON;
   if (tweet.readLater) readLaterBtn.classList.add('active');
   readLaterBtn.addEventListener('click', () => toggleReadLater(tweet.id, readLaterBtn));
@@ -750,7 +750,7 @@ function createTweetCard(tweet) {
   // 删除
   const deleteBtn = document.createElement('button');
   deleteBtn.className = 'tweet-card-icon-btn danger';
-  deleteBtn.title = '删除';
+  deleteBtn.setAttribute('data-tip', '删除');
   deleteBtn.innerHTML = TRASH_ICON;
   deleteBtn.addEventListener('click', () => showDeleteTweetModal(tweet.id));
   actions.appendChild(deleteBtn);

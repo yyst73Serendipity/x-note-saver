@@ -1140,11 +1140,61 @@ body {
   transition: background 0.15s, color 0.15s;
   font-family: inherit;
   flex-shrink: 0;
+  position: relative;
 }
 
 .tweet-card-icon-btn:hover {
   background: var(--accent-soft);
   color: var(--accent);
+}
+
+/* 图标 hover 提示气泡（顶部深色气泡 + 小箭头） */
+.tweet-card-icon-btn::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(3px);
+  background: #0F1419;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, transform 0.15s;
+  z-index: 60;
+}
+
+.tweet-card-icon-btn::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 3px);
+  left: 50%;
+  transform: translateX(-50%) translateY(3px);
+  border: 5px solid transparent;
+  border-top-color: #0F1419;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, transform 0.15s;
+  z-index: 60;
+}
+
+.tweet-card-icon-btn:hover::after,
+.tweet-card-icon-btn:hover::before {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* 删除按钮的提示气泡用红色 */
+.tweet-card-icon-btn.danger::after {
+  background: var(--danger);
+}
+
+.tweet-card-icon-btn.danger::before {
+  border-top-color: var(--danger);
 }
 
 /* 删除按钮：hover 变红 */
