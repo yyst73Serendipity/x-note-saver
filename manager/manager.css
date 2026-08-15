@@ -620,7 +620,16 @@ body {
   box-shadow: 0 0 0 2px rgba(29, 155, 240, 0.15);
 }
 
-.sort-select {
+/* ===== 排序下拉 ===== */
+.sort-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.sort-dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 9px 14px;
   border: 1px solid var(--border-card);
   border-radius: var(--radius-full);
@@ -630,16 +639,93 @@ body {
   cursor: pointer;
   outline: none;
   font-family: inherit;
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23536471' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 32px;
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.18s;
+  white-space: nowrap;
 }
 
-.sort-select:focus {
+.sort-dropdown-trigger:hover {
+  border-color: #cfd9de;
+}
+
+.sort-dropdown-trigger.open {
   border-color: var(--accent);
+}
+
+.sort-dropdown-arrow {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--text-secondary);
+  transition: transform 0.2s;
+}
+
+.sort-dropdown-trigger.open .sort-dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.sort-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 160px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--border-card);
+  padding: 4px;
+  z-index: 200;
+  display: none;
+  animation: cat-dropdown-in 0.15s ease;
+}
+
+.sort-dropdown-panel.open {
+  display: block;
+}
+
+.sort-dropdown-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-primary);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.sort-dropdown-option:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.sort-dropdown-option.selected {
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* 勾号 — 仅选中项显示 */
+.sort-dropdown-check {
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent);
+  opacity: 0;
+  flex-shrink: 0;
+}
+
+.sort-dropdown-option.selected .sort-dropdown-check {
+  opacity: 1;
 }
 
 /* ===== 分类标题 ===== */

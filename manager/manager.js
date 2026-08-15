@@ -23,12 +23,16 @@ let showReadLater = false;
 /* 当前正在编辑笔记的推文 ID，null 表示无 */
 let editingTweetId = null;
 
+/* 排序状态：'newest' 最新收藏 / 'oldest' 最早收藏 */
+let sortOrder = 'newest';
+
 /* DOM 元素引用 */
 const categoryList = document.getElementById('category-list');
 const tweetList = document.getElementById('tweet-list');
 const emptyState = document.getElementById('empty-state');
 const searchInput = document.getElementById('search-input');
-const sortSelect = document.getElementById('sort-select');
+const sortTrigger = document.getElementById('sort-dropdown-trigger');
+const sortPanel = document.getElementById('sort-dropdown-panel');
 const currentCatTitle = document.getElementById('current-category-title');
 const currentCatCount = document.getElementById('current-category-count');
 const newCatInput = document.getElementById('new-cat-input');
@@ -426,7 +430,6 @@ function renderTweets() {
   }
 
   // 排序
-  const sortOrder = sortSelect.value;
   filtered.sort((a, b) => {
     if (sortOrder === 'oldest') return a.savedAt - b.savedAt;
     return b.savedAt - a.savedAt; // newest first
@@ -1184,8 +1187,30 @@ searchInput.addEventListener('input', () => {
   updateEmptyState();
 });
 
-sortSelect.addEventListener('change', () => {
-  renderTweets();
+/* 排序下拉 */
+sortTrigger.addEventListener('click', (e) => {
+  e.stopPropagation();
+  sortPanel.classList.toggle('open');
+  sortTrigger.classList.toggle('open');
+});
+
+sortPanel.querySelectorAll('.sort-dropdown-option').forEach(opt => {
+  opt.addEventListener('click', () => {
+    sortOrder = opt.dataset.value;
+    sortPanel.querySelectorAll('.sort-dropdown-option').forEach(o => o.classList.remove('selected'));
+    opt.classList.add('selected');
+    sortTrigger.querySelector('.sort-dropdown-label').textContent =
+      opt.dataset.value === 'newest' ? '最新收藏' : '最早收藏';
+    sortPanel.classList.remove('open');
+    sortTrigger.classList.remove('open');
+    renderTweets();
+  });
+});
+
+/* 点击其他地方关闭排序下拉 */
+document.addEventListener('click', () => {
+  sortPanel.classList.remove('open');
+  sortTrigger.classList.remove('open');
 });
 
 btnExport.addEventListener('click', exportData);
