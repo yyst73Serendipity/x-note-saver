@@ -124,6 +124,21 @@ function escapeHtml(str) {
 }
 
 /**
+ * 判断 URL 是否安全（仅允许 http/https，防止导入数据注入 javascript: 等危险协议）
+ * @param {string} url
+ * @returns {boolean}
+ */
+function isSafeUrl(url) {
+  if (!url) return false;
+  try {
+    const u = new URL(url, window.location.origin);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
  * 格式化时间戳为可读字符串
  * @param {number} timestamp
  * @returns {string}
@@ -712,8 +727,8 @@ function createTweetCard(tweet) {
   editBtn.addEventListener('click', () => openNoteModal(tweet));
   actions.appendChild(editBtn);
 
-  // 查看原帖
-  if (tweet.url) {
+  // 查看原帖（仅安全 URL 才渲染跳转按钮）
+  if (isSafeUrl(tweet.url)) {
     const viewBtn = document.createElement('button');
     viewBtn.className = 'tweet-card-icon-btn';
     viewBtn.setAttribute('data-tip', '查看原帖');
@@ -774,6 +789,7 @@ function createTweetCard(tweet) {
   // 媒体区域（图片缩略图 / 视频封面）
   const hasImages = tweet.images && tweet.images.length > 0;
   const hasVideo = !!(tweet.videoThumbnail);
+  const safeUrl = isSafeUrl(tweet.url) ? tweet.url : '';
   if (hasImages || hasVideo) {
     const mediaEl = document.createElement('div');
     mediaEl.className = 'tweet-card-media';
@@ -790,8 +806,11 @@ function createTweetCard(tweet) {
       tweet.images.forEach(imgUrl => {
         const link = document.createElement('a');
         link.className = 'tweet-card-img-wrap';
-        link.href = tweet.url;
-        link.target = '_blank';
+        // 仅安全 URL 才设置跳转链接
+        if (safeUrl) {
+          link.href = safeUrl;
+          link.target = '_blank';
+        }
         const img = document.createElement('img');
         img.src = imgUrl;
         img.loading = 'lazy';
@@ -812,9 +831,12 @@ function createTweetCard(tweet) {
     if (hasVideo) {
       const link = document.createElement('a');
       link.className = 'tweet-card-video-wrap';
-      link.href = tweet.url;
-      link.target = '_blank';
-      link.title = '点击去原帖观看视频';
+      // 仅安全 URL 才设置跳转链接
+      if (safeUrl) {
+        link.href = safeUrl;
+        link.target = '_blank';
+        link.title = '点击去原帖观看视频';
+      }
       const img = document.createElement('img');
       img.src = tweet.videoThumbnail;
       img.loading = 'lazy';
