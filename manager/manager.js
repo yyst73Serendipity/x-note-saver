@@ -90,10 +90,9 @@ const btnTweetModalConfirm = document.getElementById('btn-tweet-modal-confirm');
 const clearModal = document.getElementById('clear-modal');
 const btnClearModalCancel = document.getElementById('btn-clear-modal-cancel');
 const btnClearModalConfirm = document.getElementById('btn-clear-modal-confirm');
-const resultModal = document.getElementById('result-modal');
-const resultModalTitle = document.getElementById('result-modal-title');
-const resultModalBody = document.getElementById('result-modal-body');
-const btnResultModalOk = document.getElementById('btn-result-modal-ok');
+
+/* 页面顶部提示 DOM 引用 */
+const toast = document.getElementById('toast');
 
 /* 导入预览弹窗 DOM 引用 */
 const importPreviewModal = document.getElementById('import-preview-modal');
@@ -1076,12 +1075,12 @@ async function handleImportFile(file) {
     const text = await file.text();
     data = JSON.parse(text);
   } catch (err) {
-    showResult('导入失败', '文件解析错误，请确认选择的是 JSON 格式的备份文件。');
+    showToast('导入失败：文件解析错误', 'error');
     return;
   }
 
   if (!data.tweets || !Array.isArray(data.tweets)) {
-    showResult('导入失败', '文件格式不正确，缺少推文数据。');
+    showToast('导入失败：文件格式不正确', 'error');
     return;
   }
 
@@ -1106,59 +1105,76 @@ async function handleImportFile(file) {
 }
 
 /**
- * 确认导入：执行合并写入
+ * 确认导入：执行合并写入，成功后顶部提示导入成功，失败顶部提示导入失败
  */
 async function confirmImport() {
   const data = importPreviewModal._pendingData;
   if (!data) return;
   importPreviewModal.classList.add('hidden');
 
-  // 合并分类
-  if (data.categories && Array.isArray(data.categories)) {
-    for (const cat of data.categories) {
-      if (!categories.includes(cat)) {
-        const resp = await chrome.runtime.sendMessage({ action: 'addCategory', name: cat });
-        if (resp.success) categories = resp.data;
+  try {
+    // 合并分类
+    if (data.categories && Array.isArray(data.categories)) {
+      for (const cat of data.categories) {
+        if (!categories.includes(cat)) {
+          const resp = await chrome.runtime.sendMessage({ action: 'addCategory', name: cat });
+          if (resp.success) categories = resp.data;
+        }
       }
     }
-  }
 
-  // 合并推文（按 tweetId 去重）
-  const existingIds = new Set(tweets.map(t => t.tweetId));
-  const newTweets = [];
-  for (const tweet of data.tweets) {
-    if (!existingIds.has(tweet.tweetId)) {
-      if (!categories.includes(tweet.category)) {
-        tweet.category = '未分类';
-      }
-      const resp = await chrome.runtime.sendMessage({ action: 'saveTweet', data: tweet });
-      if (resp.success && resp.data) {
-        newTweets.push(resp.data);
-        existingIds.add(tweet.tweetId);
+    // 合并推文（按 tweetId 去重）
+    const existingIds = new Set(tweets.map(t => t.tweetId));
+    const newTweets = [];
+    for (const tweet of data.tweets) {
+      if (!existingIds.has(tweet.tweetId)) {
+        if (!categories.includes(tweet.category)) {
+          tweet.category = '未分类';
+        }
+        const resp = await chrome.runtime.sendMessage({ action: 'saveTweet', data: tweet });
+        if (resp.success && resp.data) {
+          newTweets.push(resp.data);
+          existingIds.add(tweet.tweetId);
+        }
       }
     }
+
+    // 重新加载
+    const tweetResp = await chrome.runtime.sendMessage({ action: 'getTweets' });
+    if (tweetResp.success) tweets = tweetResp.data;
+
+    renderAll();
+
+    // 有新增推文即视为导入成功，否则提示失败
+    if (newTweets.length > 0) {
+      showToast('导入成功', 'success');
+    } else {
+      showToast('导入失败', 'error');
+    }
+  } catch (err) {
+    showToast('导入失败', 'error');
   }
-
-  // 重新加载
-  const tweetResp = await chrome.runtime.sendMessage({ action: 'getTweets' });
-  if (tweetResp.success) tweets = tweetResp.data;
-
-  renderAll();
-  showResult('导入完成', `成功导入 ${newTweets.length} 条推文，跳过 ${data.tweets.length - newTweets.length} 条重复。`);
 
   importPreviewModal._pendingData = null;
   importPreviewModal._pendingNewTweets = null;
 }
 
 /**
- * 显示结果弹窗
- * @param {string} title
- * @param {string} body
+ * 页面顶部提示
+ * @param {string} msg - 提示文字
+ * @param {string} type - 'success' 成功 / 'error' 失败
  */
-function showResult(title, body) {
-  resultModalTitle.textContent = title;
-  resultModalBody.textContent = body;
-  resultModal.classList.remove('hidden');
+function showToast(msg, type) {
+  toast.textContent = msg;
+  toast.className = 'toast ' + (type || '');
+  // 强制重绘以重启动画
+  void toast.offsetWidth;
+  toast.classList.add('show');
+  clearTimeout(showToast._timer);
+  showToast._timer = setTimeout(() => {
+    toast.classList.remove('show');
+    toast.classList.add('hidden');
+  }, 2500);
 }
 
 /* ========== 清空数据 ========== */
@@ -1287,8 +1303,6 @@ btnTweetModalConfirm.addEventListener('click', confirmDeleteTweet);
 btnClearModalCancel.addEventListener('click', () => clearModal.classList.add('hidden'));
 btnClearModalConfirm.addEventListener('click', confirmClear);
 
-btnResultModalOk.addEventListener('click', () => resultModal.classList.add('hidden'));
-
 /* 导入预览弹窗事件 */
 btnPreviewCancel.addEventListener('click', () => {
   importPreviewModal.classList.add('hidden');
@@ -1305,7 +1319,7 @@ btnNoteModalCancel.addEventListener('click', () => {
 btnNoteModalConfirm.addEventListener('click', saveNoteModal);
 
 /* 点击弹窗遮罩关闭 */
-[deleteCatModal, deleteTweetModal, clearModal, resultModal, importPreviewModal, noteModal].forEach(modal => {
+[deleteCatModal, deleteTweetModal, clearModal, importPreviewModal, noteModal].forEach(modal => {
   modal.addEventListener('click', (e) => {
     if (e.target === modal) {
       if (modal === importPreviewModal) {
