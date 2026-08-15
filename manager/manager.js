@@ -435,6 +435,20 @@ function selectReadLater() {
 }
 
 /**
+ * 判断推文是否匹配搜索关键词（列表过滤与标题计数共用，保证数量一致）
+ * @param {Object} tweet
+ * @param {string} kw - 已转小写的关键词
+ * @returns {boolean}
+ */
+function matchesSearch(tweet, kw) {
+  return tweet.text.toLowerCase().includes(kw) ||
+    tweet.author.toLowerCase().includes(kw) ||
+    (tweet.handle && tweet.handle.toLowerCase().includes(kw)) ||
+    (tweet.note && tweet.note.toLowerCase().includes(kw)) ||
+    (tweet.tags || []).some(tag => tag.toLowerCase().includes(kw));
+}
+
+/**
  * 渲染推文卡片列表
  */
 function renderTweets() {
@@ -454,13 +468,7 @@ function renderTweets() {
   // 按搜索关键词过滤
   if (searchKeyword) {
     const kw = searchKeyword.toLowerCase();
-    filtered = filtered.filter(t =>
-      t.text.toLowerCase().includes(kw) ||
-      t.author.toLowerCase().includes(kw) ||
-      (t.handle && t.handle.toLowerCase().includes(kw)) ||
-      (t.note && t.note.toLowerCase().includes(kw)) ||
-      (t.tags || []).some(tag => tag.toLowerCase().includes(kw))
-    );
+    filtered = filtered.filter(t => matchesSearch(t, kw));
   }
 
   // 排序
@@ -487,11 +495,7 @@ function updateCategoryTitle() {
   }
   if (searchKeyword) {
     const kw = searchKeyword.toLowerCase();
-    filtered = filtered.filter(t =>
-      t.text.toLowerCase().includes(kw) ||
-      t.author.toLowerCase().includes(kw) ||
-      (t.tags || []).some(tag => tag.toLowerCase().includes(kw))
-    );
+    filtered = filtered.filter(t => matchesSearch(t, kw));
   }
   currentCatTitle.textContent = showReadLater ? '稍后阅读' : currentCategory;
   currentCatCount.textContent = filtered.length + ' 条';
