@@ -145,16 +145,18 @@ async function renameCategory(oldName, newName) {
 }
 
 /**
- * 更新推文的笔记
+ * 更新推文的笔记和标签
  * @param {string} id - 推文 ID
  * @param {string} note - 笔记内容
+ * @param {Array} tags - 标签数组
  * @returns {Promise<Object>} 更新后的推文
  */
-async function updateNote(id, note) {
+async function updateNoteTags(id, note, tags) {
   const tweets = await getTweets();
   const tweet = tweets.find(t => t.id === id);
   if (!tweet) throw new Error('推文不存在');
   tweet.note = note || '';
+  tweet.tags = tags || [];
   await chrome.storage.local.set({ [STORAGE_KEY_TWEETS]: tweets });
   return tweet;
 }
@@ -200,7 +202,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     deleteCategory:  () => deleteCategory(message.name),
     renameCategory:  () => renameCategory(message.oldName, message.newName),
     updateCategory:  () => updateCategory(message.id, message.category),
-    updateNote:      () => updateNote(message.id, message.note),
+    updateNoteTags:  () => updateNoteTags(message.id, message.note, message.tags),
     updateReadLater: () => updateReadLater(message.id, message.readLater)
   };
 

@@ -277,7 +277,8 @@ async function extractTweetData(tweetEl) {
     images: media.images,
     videoThumbnail: media.videoThumbnail,
     category: '未分类',
-    note: ''
+    note: '',
+    tags: []
   };
 }
 

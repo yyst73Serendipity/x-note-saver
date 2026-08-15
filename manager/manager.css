@@ -499,6 +499,69 @@ body {
   background: var(--accent-hover);
 }
 
+/* ===== 编辑笔记弹窗 ===== */
+.note-modal-dialog {
+  max-width: 480px;
+}
+
+.note-form-field {
+  margin-bottom: 16px;
+}
+
+.note-form-field:last-child {
+  margin-bottom: 0;
+}
+
+.note-form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.note-form-textarea {
+  width: 100%;
+  min-height: 96px;
+  padding: 10px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: #fafbfd;
+  resize: vertical;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+
+.note-form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--text-primary);
+  background: #fafbfd;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+
+.note-form-textarea:focus,
+.note-form-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(29, 155, 240, 0.12);
+}
+
+.note-form-textarea::placeholder,
+.note-form-input::placeholder {
+  color: #c4c8ce;
+}
+
 /* ===== 右侧内容 ===== */
 .content {
   flex: 1;
@@ -776,64 +839,49 @@ body {
   pointer-events: none;
 }
 
-/* 笔记区域 — 默认隐藏，hover 卡片时显示，有笔记时始终可见 */
-.tweet-card-note-container {
-  display: none;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px dashed var(--border-subtle);
-}
-
-.tweet-card:hover .tweet-card-note-container {
-  display: block;
-}
-
-.tweet-card-note-container.has-note {
-  display: block;
-}
-
-/* 查看态 */
-.tweet-card-note-view {
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--text-secondary);
+/* 笔记 + 标签展示区 — 位于正文之前，点击可再次编辑 */
+.tweet-card-meta {
+  margin-bottom: 10px;
   padding: 8px 12px;
   border-radius: var(--radius-sm);
   background: #f6f8fb;
+  border: 1px solid var(--border-subtle);
   cursor: pointer;
   transition: background 0.18s;
 }
 
-.tweet-card-note-view:hover {
+.tweet-card-meta:hover {
   background: #eef0f4;
 }
 
-/* 编辑态 */
-.tweet-card-note-edit {
-  display: none;
-  width: 100%;
-  padding: 10px 12px;
-  border: 1.5px solid #e5e7eb;
-  border-radius: var(--radius-sm);
+.tweet-card-meta-note {
   font-size: 13px;
   line-height: 1.6;
   color: var(--text-secondary);
-  background: #fafbfd;
-  resize: none;
-  overflow: hidden;
-  outline: none;
-  font-family: inherit;
-  transition: border-color 0.18s, box-shadow 0.18s;
-  box-sizing: border-box;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
-.tweet-card-note-edit::placeholder {
-  color: #c4c8ce;
+.tweet-card-meta-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-.tweet-card-note-edit:focus {
-  border-color: #9ca3af;
-  box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.12);
+.tweet-card-meta-note + .tweet-card-meta-tags {
+  margin-top: 8px;
+}
+
+.tweet-card-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: var(--radius-full);
+  line-height: 1.6;
 }
 
 .tweet-card-footer {
@@ -1007,6 +1055,19 @@ body {
 .tweet-card-action:hover {
   background: var(--bg-sidebar-hover);
   color: var(--text-primary);
+}
+
+/* 编辑笔记图标按钮 */
+.tweet-card-action.btn-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+}
+
+.tweet-card-action.btn-edit:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .tweet-card-action.btn-view:hover {

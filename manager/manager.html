@@ -104,6 +104,27 @@
         </div>
       </div>
 
+      <!-- 编辑笔记弹窗 -->
+      <div class="modal-overlay hidden" id="note-modal">
+        <div class="modal-dialog note-modal-dialog">
+          <div class="modal-title">编辑笔记</div>
+          <div class="modal-body">
+            <div class="note-form-field">
+              <label class="note-form-label">笔记</label>
+              <textarea class="note-form-textarea" id="note-modal-text" placeholder="添加笔记..."></textarea>
+            </div>
+            <div class="note-form-field">
+              <label class="note-form-label">标签</label>
+              <input class="note-form-input" id="note-modal-tags" placeholder="多个标签用逗号或空格分隔，如：AI, 读书">
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn-modal-cancel" id="btn-note-modal-cancel">取消</button>
+            <button class="btn-modal-confirm" id="btn-note-modal-confirm">确认保存</button>
+          </div>
+        </div>
+      </div>
+
       <!-- 右侧推文列表 -->
       <section class="content">
         <!-- 搜索和排序栏 -->

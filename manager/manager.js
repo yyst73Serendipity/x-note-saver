@@ -3,6 +3,12 @@
  * 管理收藏推文：按分类查看、搜索、添加笔记、导入导出
  */
 
+/* 编辑笔记按钮图标 SVG — 铅笔 */
+const EDIT_ICON = `
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+</svg>`;
+
 /* 状态 */
 let tweets = [];
 let categories = [];
@@ -13,6 +19,9 @@ let pendingDeleteTweetId = null;
 
 /* 稍后阅读视图状态：true 表示当前显示「稍后阅读」入口 */
 let showReadLater = false;
+
+/* 当前正在编辑笔记的推文 ID，null 表示无 */
+let editingTweetId = null;
 
 /* DOM 元素引用 */
 const categoryList = document.getElementById('category-list');
@@ -53,6 +62,13 @@ const importPreviewModal = document.getElementById('import-preview-modal');
 const importPreviewBody = document.getElementById('import-preview-body');
 const btnPreviewCancel = document.getElementById('btn-preview-cancel');
 const btnPreviewConfirm = document.getElementById('btn-preview-confirm');
+
+/* 编辑笔记弹窗 DOM 引用 */
+const noteModal = document.getElementById('note-modal');
+const noteModalText = document.getElementById('note-modal-text');
+const noteModalTags = document.getElementById('note-modal-tags');
+const btnNoteModalCancel = document.getElementById('btn-note-modal-cancel');
+const btnNoteModalConfirm = document.getElementById('btn-note-modal-confirm');
 
 /* 存储配额条 DOM 引用 */
 const storageQuotaBar = document.getElementById('storage-quota-bar');
@@ -404,7 +420,8 @@ function renderTweets() {
       t.text.toLowerCase().includes(kw) ||
       t.author.toLowerCase().includes(kw) ||
       (t.handle && t.handle.toLowerCase().includes(kw)) ||
-      (t.note && t.note.toLowerCase().includes(kw))
+      (t.note && t.note.toLowerCase().includes(kw)) ||
+      (t.tags || []).some(tag => tag.toLowerCase().includes(kw))
     );
   }
 
@@ -435,7 +452,8 @@ function updateCategoryTitle() {
     const kw = searchKeyword.toLowerCase();
     filtered = filtered.filter(t =>
       t.text.toLowerCase().includes(kw) ||
-      t.author.toLowerCase().includes(kw)
+      t.author.toLowerCase().includes(kw) ||
+      (t.tags || []).some(tag => tag.toLowerCase().includes(kw))
     );
   }
   currentCatTitle.textContent = showReadLater ? '稍后阅读' : currentCategory;
@@ -644,6 +662,14 @@ function createTweetCard(tweet) {
   const actions = document.createElement('div');
   actions.className = 'tweet-card-actions';
 
+  // 编辑笔记（图标按钮，弹出笔记弹窗）
+  const editBtn = document.createElement('button');
+  editBtn.className = 'tweet-card-action btn-edit';
+  editBtn.title = '编辑笔记';
+  editBtn.innerHTML = EDIT_ICON;
+  editBtn.addEventListener('click', () => openNoteModal(tweet));
+  actions.appendChild(editBtn);
+
   // 查看原帖
   if (tweet.url) {
     const viewBtn = document.createElement('button');
@@ -684,6 +710,10 @@ function createTweetCard(tweet) {
 
   footer.appendChild(actions);
   card.appendChild(footer);
+
+  // 笔记 + 标签展示区（正文之前，有内容才显示）
+  const noteMeta = createNoteMeta(tweet);
+  if (noteMeta) card.appendChild(noteMeta);
 
   // 推文正文
   const textEl = document.createElement('div');
@@ -745,82 +775,88 @@ function createTweetCard(tweet) {
     card.appendChild(mediaEl);
   }
 
-  // 笔记区域（hover 时显示，有笔记时始终可见）
-  const noteContainer = document.createElement('div');
-  noteContainer.className = 'tweet-card-note-container';
+  return card;
+}
 
-  // 查看态
-  const noteView = document.createElement('div');
-  noteView.className = 'tweet-card-note-view';
-  noteView.textContent = tweet.note || '';
-  noteView.addEventListener('click', () => {
-    noteView.style.display = 'none';
-    noteEdit.style.display = 'block';
-    requestAnimationFrame(() => {
-      noteEdit.style.height = 'auto';
-      noteEdit.style.height = noteEdit.scrollHeight + 'px';
-    });
-    noteEdit.focus();
-  });
+/**
+ * 创建笔记 + 标签展示区（有任一内容才返回节点，否则返回 null）
+ * @param {Object} tweet
+ * @returns {HTMLElement|null}
+ */
+function createNoteMeta(tweet) {
+  const tags = tweet.tags || [];
+  const note = tweet.note || '';
+  if (!note && tags.length === 0) return null;
 
-  // 编辑态
-  const noteEdit = document.createElement('textarea');
-  noteEdit.className = 'tweet-card-note-edit';
-  noteEdit.placeholder = '添加笔记...';
-  noteEdit.value = tweet.note || '';
-  noteEdit.rows = 1;
-  noteEdit.addEventListener('input', () => {
-    noteEdit.style.height = 'auto';
-    noteEdit.style.height = noteEdit.scrollHeight + 'px';
-  });
-  noteEdit.addEventListener('blur', async () => {
-    noteEdit.style.height = 'auto';
-    noteEdit.style.height = noteEdit.scrollHeight + 'px';
-    const newNote = noteEdit.value.trim();
-    if (newNote === (tweet.note || '')) {
-      // 切回查看态
-      noteEdit.style.display = 'none';
-      if (newNote) {
-        noteView.style.display = 'block';
-      }
-      return;
-    }
-    tweet.note = newNote;
-    noteView.textContent = newNote;
-    try {
-      await chrome.runtime.sendMessage({ action: 'updateNote', id: tweet.id, note: newNote });
-    } catch (err) {
-      const result = await chrome.storage.local.get('twitter_notes');
-      const list = result.twitter_notes || [];
-      const target = list.find(t => t.id === tweet.id);
-      if (target) target.note = newNote;
-      await chrome.storage.local.set({ twitter_notes: list });
-    }
-    noteEdit.style.display = 'none';
-    noteView.style.display = newNote ? 'block' : 'none';
-    if (newNote) {
-      noteContainer.classList.add('has-note');
-    } else {
-      noteContainer.classList.remove('has-note');
-    }
-  });
+  const meta = document.createElement('div');
+  meta.className = 'tweet-card-meta';
+  meta.title = '点击编辑笔记';
+  meta.addEventListener('click', () => openNoteModal(tweet));
 
-  // 初始状态：有笔记显示查看态并常驻，无笔记 hover 才显示
-  if (tweet.note) {
-    noteContainer.classList.add('has-note');
-    noteView.style.display = 'block';
-    noteEdit.style.display = 'none';
-  } else {
-    noteContainer.classList.remove('has-note');
-    noteView.style.display = 'none';
-    noteEdit.style.display = 'block';
+  if (note) {
+    const noteEl = document.createElement('div');
+    noteEl.className = 'tweet-card-meta-note';
+    noteEl.textContent = note;
+    meta.appendChild(noteEl);
   }
 
-  noteContainer.appendChild(noteView);
-  noteContainer.appendChild(noteEdit);
-  card.appendChild(noteContainer);
+  if (tags.length > 0) {
+    const tagsEl = document.createElement('div');
+    tagsEl.className = 'tweet-card-meta-tags';
+    tags.forEach(tag => {
+      const chip = document.createElement('span');
+      chip.className = 'tweet-card-tag';
+      chip.textContent = tag;
+      tagsEl.appendChild(chip);
+    });
+    meta.appendChild(tagsEl);
+  }
 
-  return card;
+  return meta;
+}
+
+/**
+ * 打开编辑笔记弹窗
+ * @param {Object} tweet
+ */
+function openNoteModal(tweet) {
+  editingTweetId = tweet.id;
+  noteModalText.value = tweet.note || '';
+  noteModalTags.value = (tweet.tags || []).join(', ');
+  noteModal.classList.remove('hidden');
+  setTimeout(() => noteModalText.focus(), 50);
+}
+
+/**
+ * 保存笔记和标签
+ */
+async function saveNoteModal() {
+  const id = editingTweetId;
+  if (!id) return;
+
+  const note = noteModalText.value.trim();
+  // 标签：按中英文逗号、顿号、空格切分，去空去重
+  const tags = Array.from(new Set(
+    noteModalTags.value.split(/[,，、\s]+/).map(s => s.trim()).filter(Boolean)
+  ));
+
+  // 先更新内存，再持久化；消息通道失败时整库写 storage 兜底
+  const tweet = tweets.find(t => t.id === id);
+  if (tweet) {
+    tweet.note = note;
+    tweet.tags = tags;
+  }
+
+  try {
+    const resp = await chrome.runtime.sendMessage({ action: 'updateNoteTags', id, note, tags });
+    if (!resp.success) throw new Error(resp.error || '保存失败');
+  } catch (err) {
+    await chrome.storage.local.set({ twitter_notes: tweets });
+  }
+
+  noteModal.classList.add('hidden');
+  editingTweetId = null;
+  renderAll();
 }
 
 /* ========== 分类管理 ========== */
@@ -1188,13 +1224,23 @@ btnPreviewCancel.addEventListener('click', () => {
 });
 btnPreviewConfirm.addEventListener('click', confirmImport);
 
+/* 编辑笔记弹窗事件 */
+btnNoteModalCancel.addEventListener('click', () => {
+  noteModal.classList.add('hidden');
+  editingTweetId = null;
+});
+btnNoteModalConfirm.addEventListener('click', saveNoteModal);
+
 /* 点击弹窗遮罩关闭 */
-[deleteCatModal, deleteTweetModal, clearModal, resultModal, importPreviewModal].forEach(modal => {
+[deleteCatModal, deleteTweetModal, clearModal, resultModal, importPreviewModal, noteModal].forEach(modal => {
   modal.addEventListener('click', (e) => {
     if (e.target === modal) {
       if (modal === importPreviewModal) {
         importPreviewModal._pendingData = null;
         importPreviewModal._pendingNewTweets = null;
+      }
+      if (modal === noteModal) {
+        editingTweetId = null;
       }
       modal.classList.add('hidden');
     }
