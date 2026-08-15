@@ -839,19 +839,22 @@ body {
   pointer-events: none;
 }
 
-/* 笔记 + 标签展示区 — 位于正文之前，点击可再次编辑 */
+/* 笔记 + 标签展示区 — 引用条风格，位于正文之前，点击可再次编辑 */
 .tweet-card-meta {
   margin-bottom: 10px;
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-  background: #f6f8fb;
-  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0 4px 14px;
+  border-left: 3px solid var(--accent);
+  border-radius: 2px;
   cursor: pointer;
-  transition: background 0.18s;
+  transition: border-color 0.18s, background 0.18s;
 }
 
 .tweet-card-meta:hover {
-  background: #eef0f4;
+  border-left-color: var(--accent-hover);
+  background: var(--bg-sidebar-hover);
 }
 
 .tweet-card-meta-note {
@@ -866,10 +869,6 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-}
-
-.tweet-card-meta-note + .tweet-card-meta-tags {
-  margin-top: 8px;
 }
 
 .tweet-card-tag {
