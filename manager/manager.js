@@ -3,10 +3,44 @@
  * 管理收藏推文：按分类查看、搜索、添加笔记、导入导出
  */
 
-/* 编辑笔记按钮图标 SVG — 铅笔 */
+/* 操作栏图标 SVG（编辑/外链/复制/勾选/书签/删除） */
 const EDIT_ICON = `
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+</svg>`;
+
+const VIEW_ICON = `
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+  <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+</svg>`;
+
+const COPY_ICON = `
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+</svg>`;
+
+const CHECK_ICON = `
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+  <polyline points="20 6 9 17 4 12"/>
+</svg>`;
+
+const BOOKMARK_ICON = `
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+</svg>`;
+
+const BOOKMARK_FILLED_ICON = `
+<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+</svg>`;
+
+const TRASH_ICON = `
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <polyline points="3 6 5 6 21 6"/>
+  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+  <line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>
 </svg>`;
 
 /* 状态 */
@@ -518,11 +552,13 @@ async function toggleReadLater(id, btn) {
     await chrome.storage.local.set({ twitter_notes: tweets });
   }
 
-  // 更新按钮视觉态
+  // 更新按钮视觉态（图标随状态切换）
   if (newState) {
     btn.classList.add('active');
+    btn.innerHTML = BOOKMARK_FILLED_ICON;
   } else {
     btn.classList.remove('active');
+    btn.innerHTML = BOOKMARK_ICON;
   }
 
   // 若在「稍后阅读」视图中取消标记，移除后刷新列表；否则仅刷新侧栏计数
@@ -667,7 +703,7 @@ function createTweetCard(tweet) {
 
   // 编辑笔记（图标按钮，弹出笔记弹窗）
   const editBtn = document.createElement('button');
-  editBtn.className = 'tweet-card-action btn-edit';
+  editBtn.className = 'tweet-card-icon-btn';
   editBtn.title = '编辑笔记';
   editBtn.innerHTML = EDIT_ICON;
   editBtn.addEventListener('click', () => openNoteModal(tweet));
@@ -676,8 +712,9 @@ function createTweetCard(tweet) {
   // 查看原帖
   if (tweet.url) {
     const viewBtn = document.createElement('button');
-    viewBtn.className = 'tweet-card-action btn-view';
-    viewBtn.textContent = '查看原帖';
+    viewBtn.className = 'tweet-card-icon-btn';
+    viewBtn.title = '查看原帖';
+    viewBtn.innerHTML = VIEW_ICON;
     viewBtn.addEventListener('click', () => {
       window.open(tweet.url, '_blank');
     });
@@ -686,28 +723,35 @@ function createTweetCard(tweet) {
 
   // 复制正文
   const copyBtn = document.createElement('button');
-  copyBtn.className = 'tweet-card-action';
-  copyBtn.textContent = '复制';
+  copyBtn.className = 'tweet-card-icon-btn';
+  copyBtn.title = '复制正文';
+  copyBtn.innerHTML = COPY_ICON;
   copyBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(tweet.text).then(() => {
-      copyBtn.textContent = '已复制';
-      setTimeout(() => { copyBtn.textContent = '复制'; }, 1500);
+      copyBtn.innerHTML = CHECK_ICON;
+      copyBtn.title = '已复制';
+      setTimeout(() => {
+        copyBtn.innerHTML = COPY_ICON;
+        copyBtn.title = '复制正文';
+      }, 1500);
     });
   });
   actions.appendChild(copyBtn);
 
   // 稍后阅读标记
   const readLaterBtn = document.createElement('button');
-  readLaterBtn.className = 'tweet-card-action btn-read-later';
-  readLaterBtn.textContent = '稍后阅读';
+  readLaterBtn.className = 'tweet-card-icon-btn';
+  readLaterBtn.title = '稍后阅读';
+  readLaterBtn.innerHTML = tweet.readLater ? BOOKMARK_FILLED_ICON : BOOKMARK_ICON;
   if (tweet.readLater) readLaterBtn.classList.add('active');
   readLaterBtn.addEventListener('click', () => toggleReadLater(tweet.id, readLaterBtn));
   actions.appendChild(readLaterBtn);
 
   // 删除
   const deleteBtn = document.createElement('button');
-  deleteBtn.className = 'tweet-card-action btn-delete';
-  deleteBtn.textContent = '删除';
+  deleteBtn.className = 'tweet-card-icon-btn danger';
+  deleteBtn.title = '删除';
+  deleteBtn.innerHTML = TRASH_ICON;
   deleteBtn.addEventListener('click', () => showDeleteTweetModal(tweet.id));
   actions.appendChild(deleteBtn);
 

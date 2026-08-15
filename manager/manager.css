@@ -1122,65 +1122,44 @@ body {
 
 .tweet-card-actions {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 2px;
 }
 
-.tweet-card-action {
-  font-size: 12px;
-  padding: 4px 12px;
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius-full);
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.15s;
-  font-family: inherit;
-}
-
-.tweet-card-action:hover {
-  background: var(--bg-sidebar-hover);
-  color: var(--text-primary);
-}
-
-/* 编辑笔记图标按钮 */
-.tweet-card-action.btn-edit {
+.tweet-card-icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 4px 10px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: #8899A6;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-family: inherit;
+  flex-shrink: 0;
 }
 
-.tweet-card-action.btn-edit:hover {
-  color: var(--accent);
-  border-color: var(--accent);
-}
-
-.tweet-card-action.btn-view:hover {
-  color: var(--accent);
-  border-color: var(--accent);
-}
-
-.tweet-card-action.btn-delete {
-  color: var(--danger);
-  border-color: transparent;
-}
-
-.tweet-card-action.btn-delete:hover {
-  background: rgba(244, 33, 46, 0.08);
-  border-color: rgba(244, 33, 46, 0.3);
-}
-
-/* 稍后阅读按钮 */
-.tweet-card-action.btn-read-later:hover {
-  color: var(--accent);
-  border-color: var(--accent);
+.tweet-card-icon-btn:hover {
   background: var(--accent-soft);
+  color: var(--accent);
 }
 
-.tweet-card-action.btn-read-later.active {
-  color: #fff;
-  background: var(--accent);
-  border-color: var(--accent);
+/* 删除按钮：hover 变红 */
+.tweet-card-icon-btn.danger:hover {
+  background: rgba(244, 33, 46, 0.08);
+  color: var(--danger);
+}
+
+/* 稍后阅读激活态：书签填充 + accent 色 */
+.tweet-card-icon-btn.active {
+  color: var(--accent);
+}
+
+.tweet-card-icon-btn.active:hover {
+  color: var(--accent);
 }
 
 /* 左侧栏「稍后阅读」入口 */
