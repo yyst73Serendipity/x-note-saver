@@ -51,6 +51,9 @@ let searchKeyword = '';
 let editingCategory = null;
 let pendingDeleteTweetId = null;
 
+/* 拖拽排序中的分类名，null 表示未在拖拽 */
+let dragCategory = null;
+
 /* 稍后阅读视图状态：true 表示当前显示「稍后阅读」入口 */
 let showReadLater = false;
 
@@ -288,11 +291,21 @@ function renderCategories() {
   });
   categoryList.appendChild(readLaterItem);
 
-  // 各分类项
-  categories.forEach(cat => {
+  // 「未分类」固定第三位，不可拖拽、不可编辑
+  const uncat = '未分类';
+  const uncatCount = tweets.filter(t => t.category === uncat).length;
+  const uncatItem = createCategoryItem(uncat, uncatCount, false);
+  if (currentCategory === uncat && !showReadLater) uncatItem.classList.add('active');
+  uncatItem.addEventListener('click', () => {
+    if (editingCategory) return;
+    selectCategory(uncat);
+  });
+  categoryList.appendChild(uncatItem);
+
+  // 其余分类按数组顺序渲染，可拖拽排序
+  categories.filter(c => c !== uncat).forEach(cat => {
     const count = tweets.filter(t => t.category === cat).length;
-    const editable = cat !== '未分类';
-    const item = createCategoryItem(cat, count, editable);
+    const item = createCategoryItem(cat, count, true, true);
     if (currentCategory === cat && !showReadLater) item.classList.add('active');
     item.addEventListener('click', () => {
       if (editingCategory) return;
@@ -335,11 +348,34 @@ function createReadLaterItem(count) {
  * @param {string} name
  * @param {number} count
  * @param {boolean} showActions
+ * @param {boolean} sortable - 是否可拖拽排序
  * @returns {HTMLElement}
  */
-function createCategoryItem(name, count, showActions) {
+function createCategoryItem(name, count, showActions, sortable = false) {
   const li = document.createElement('li');
   li.className = 'category-item';
+
+  if (sortable) {
+    const handle = document.createElement('span');
+    handle.className = 'cat-drag-handle';
+    handle.textContent = '⠿';
+    handle.title = '拖拽排序';
+    handle.draggable = true;
+
+    handle.addEventListener('dragstart', (e) => {
+      dragCategory = name;
+      li.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', name);
+    });
+    handle.addEventListener('dragend', () => {
+      li.classList.remove('dragging');
+      dragCategory = null;
+      clearDragIndicators();
+    });
+
+    li.appendChild(handle);
+  }
 
   const nameSpan = document.createElement('span');
   nameSpan.className = 'category-item-name';
@@ -377,6 +413,31 @@ function createCategoryItem(name, count, showActions) {
     actions.appendChild(renameBtn);
     actions.appendChild(deleteBtn);
     li.appendChild(actions);
+  }
+
+  // 可排序分类作为拖放目标
+  if (sortable) {
+    li.addEventListener('dragover', (e) => {
+      if (!dragCategory || dragCategory === name) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const rect = li.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height / 2;
+      clearDragIndicators();
+      li.classList.add(before ? 'drag-over-top' : 'drag-over-bottom');
+    });
+    li.addEventListener('dragleave', (e) => {
+      if (!li.contains(e.relatedTarget)) {
+        li.classList.remove('drag-over-top', 'drag-over-bottom');
+      }
+    });
+    li.addEventListener('drop', (e) => {
+      if (!dragCategory || dragCategory === name) return;
+      e.preventDefault();
+      const rect = li.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height / 2;
+      reorderCategory(dragCategory, name, before);
+    });
   }
 
   // 内联编辑区域
@@ -989,6 +1050,52 @@ async function saveNoteModal() {
 }
 
 /* ========== 分类管理 ========== */
+
+/**
+ * 清除所有分类项的拖拽插入指示线
+ */
+function clearDragIndicators() {
+  document.querySelectorAll('.category-item.drag-over-top, .category-item.drag-over-bottom')
+    .forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom'));
+}
+
+/**
+ * 重排分类顺序：将 dragged 移到 target 的上方或下方
+ * @param {string} dragged - 被拖拽的分类名
+ * @param {string} target - 目标分类名
+ * @param {boolean} before - true 表示插到 target 上方，false 表示下方
+ */
+async function reorderCategory(dragged, target, before) {
+  const FIXED = '未分类';
+  const sortable = categories.filter(c => c !== FIXED);
+  const from = sortable.indexOf(dragged);
+  const to = sortable.indexOf(target);
+  if (from < 0 || to < 0 || from === to) return;
+
+  // 拖拽已结束，清理状态与指示线（源元素可能已被重建移除，dragend 不一定会触发）
+  dragCategory = null;
+  clearDragIndicators();
+
+  const next = [...sortable];
+  next.splice(from, 1);
+  let insertAt = next.indexOf(target);
+  if (!before) insertAt += 1;
+  next.splice(insertAt, 0, dragged);
+
+  // 乐观更新内存并重渲染，随后持久化
+  categories = [FIXED, ...next];
+  renderCategories();
+
+  try {
+    const resp = await chrome.runtime.sendMessage({ action: 'reorderCategories', newOrder: next });
+    if (!resp.success) throw new Error(resp.error || '排序失败');
+    categories = resp.data;
+    renderCategories();
+  } catch (err) {
+    // 消息通道失败时直接写 storage 兜底
+    await chrome.storage.local.set({ twitter_categories: categories });
+  }
+}
 
 /**
  * 开始内联编辑分类名

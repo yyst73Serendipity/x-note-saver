@@ -191,6 +191,28 @@ async function updateReadLater(id, readLater) {
   return tweet;
 }
 
+/**
+ * 重排可排序分类的顺序（「未分类」固定首位）
+ * @param {Array} newOrder - 不含「未分类」的分类新顺序
+ * @returns {Promise<Array>} 更新后的完整分类列表
+ */
+async function reorderCategories(newOrder) {
+  const FIXED = '未分类';
+  const categories = await getCategories();
+  const sortable = categories.filter(c => c !== FIXED);
+  // 校验新顺序与当前可排序分类集合一致，防止数据错乱
+  const currentSet = new Set(sortable);
+  if (!Array.isArray(newOrder) || newOrder.length !== currentSet.size) {
+    throw new Error('分类数据不一致');
+  }
+  if (new Set(newOrder).size !== newOrder.length || !newOrder.every(c => currentSet.has(c))) {
+    throw new Error('分类数据不一致');
+  }
+  const next = [FIXED, ...newOrder];
+  await chrome.storage.local.set({ [STORAGE_KEY_CATEGORIES]: next });
+  return next;
+}
+
 /* 消息处理：根据 action 类型分发到对应的处理函数 */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const handlers = {
@@ -201,6 +223,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     addCategory:     () => addCategory(message.name),
     deleteCategory:  () => deleteCategory(message.name),
     renameCategory:  () => renameCategory(message.oldName, message.newName),
+    reorderCategories: () => reorderCategories(message.newOrder),
     updateCategory:  () => updateCategory(message.id, message.category),
     updateNoteTags:  () => updateNoteTags(message.id, message.note, message.tags),
     updateReadLater: () => updateReadLater(message.id, message.readLater)
