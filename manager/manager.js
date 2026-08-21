@@ -57,6 +57,9 @@ let showReadLater = false;
 /* 当前正在编辑笔记的推文 ID，null 表示无 */
 let editingTweetId = null;
 
+/* 笔记弹窗内的标签数组，编辑期间临时保存 */
+let currentTags = [];
+
 /* 排序状态：'newest' 最新收藏 / 'oldest' 最早收藏 */
 let sortOrder = 'newest';
 
@@ -104,6 +107,7 @@ const btnPreviewConfirm = document.getElementById('btn-preview-confirm');
 const noteModal = document.getElementById('note-modal');
 const noteModalText = document.getElementById('note-modal-text');
 const noteModalTags = document.getElementById('note-modal-tags');
+const noteTagsList = document.getElementById('note-tags-list');
 const btnNoteModalCancel = document.getElementById('btn-note-modal-cancel');
 const btnNoteModalConfirm = document.getElementById('btn-note-modal-confirm');
 
@@ -888,13 +892,66 @@ function createNoteMeta(tweet) {
 }
 
 /**
+ * 渲染弹窗内的标签 chip 列表
+ */
+function renderNoteTags() {
+  noteTagsList.textContent = '';
+  currentTags.forEach(tag => {
+    const chip = document.createElement('span');
+    chip.className = 'note-tag-chip';
+
+    const label = document.createElement('span');
+    label.className = 'note-tag-chip-label';
+    label.textContent = tag;
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'note-tag-chip-remove';
+    removeBtn.textContent = '×';
+    removeBtn.setAttribute('aria-label', `删除标签 ${tag}`);
+    removeBtn.addEventListener('click', () => removeTag(tag));
+
+    chip.appendChild(label);
+    chip.appendChild(removeBtn);
+    noteTagsList.appendChild(chip);
+  });
+}
+
+/**
+ * 删除指定标签
+ * @param {string} tag
+ */
+function removeTag(tag) {
+  currentTags = currentTags.filter(t => t !== tag);
+  renderNoteTags();
+}
+
+/**
+ * 从输入文本中解析标签并加入列表（仅中英文逗号切分，去空去重）
+ * @param {string} raw
+ */
+function addTagFromInput(raw) {
+  const tags = String(raw || '')
+    .split(/[,，]+/)
+    .map(s => s.trim())
+    .filter(Boolean);
+  tags.forEach(tag => {
+    if (!currentTags.includes(tag)) currentTags.push(tag);
+  });
+  noteModalTags.value = '';
+  renderNoteTags();
+}
+
+/**
  * 打开编辑笔记弹窗
  * @param {Object} tweet
  */
 function openNoteModal(tweet) {
   editingTweetId = tweet.id;
   noteModalText.value = tweet.note || '';
-  noteModalTags.value = (tweet.tags || []).join(', ');
+  currentTags = [...(tweet.tags || [])];
+  noteModalTags.value = '';
+  renderNoteTags();
   noteModal.classList.remove('hidden');
   setTimeout(() => noteModalText.focus(), 50);
 }
@@ -907,10 +964,9 @@ async function saveNoteModal() {
   if (!id) return;
 
   const note = noteModalText.value.trim();
-  // 标签：按中英文逗号、顿号、空格切分，去空去重
-  const tags = Array.from(new Set(
-    noteModalTags.value.split(/[,，、\s]+/).map(s => s.trim()).filter(Boolean)
-  ));
+  // 收拢输入框内可能残留的未确认文本，再取最终标签
+  addTagFromInput(noteModalTags.value);
+  const tags = [...currentTags];
 
   // 先更新内存，再持久化；消息通道失败时整库写 storage 兜底
   const tweet = tweets.find(t => t.id === id);
@@ -928,6 +984,7 @@ async function saveNoteModal() {
 
   noteModal.classList.add('hidden');
   editingTweetId = null;
+  currentTags = [];
   renderAll();
 }
 
@@ -1337,8 +1394,23 @@ btnPreviewConfirm.addEventListener('click', confirmImport);
 btnNoteModalCancel.addEventListener('click', () => {
   noteModal.classList.add('hidden');
   editingTweetId = null;
+  currentTags = [];
 });
 btnNoteModalConfirm.addEventListener('click', saveNoteModal);
+
+/* 标签输入：回车确认、逗号切分、退格删除上一个 */
+noteModalTags.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    addTagFromInput(noteModalTags.value);
+  } else if (e.key === 'Backspace' && noteModalTags.value === '' && currentTags.length > 0) {
+    currentTags.pop();
+    renderNoteTags();
+  }
+});
+noteModalTags.addEventListener('input', () => {
+  if (/[,，]/.test(noteModalTags.value)) addTagFromInput(noteModalTags.value);
+});
 
 /* 点击弹窗遮罩关闭 */
 [deleteCatModal, deleteTweetModal, clearModal, importPreviewModal, noteModal].forEach(modal => {
@@ -1350,6 +1422,7 @@ btnNoteModalConfirm.addEventListener('click', saveNoteModal);
       }
       if (modal === noteModal) {
         editingTweetId = null;
+        currentTags = [];
       }
       modal.classList.add('hidden');
     }
