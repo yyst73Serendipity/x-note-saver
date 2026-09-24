@@ -644,14 +644,10 @@ async function init() {
   setInterval(checkUrlChange, 1000);
 
   // 存储变化监测：管理页增删改后，实时同步分类和已收藏状态
-  chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName !== 'local') return;
-    if (changes[STORAGE_KEY_CATEGORIES]) {
-      loadCategories();
-    }
-    if (changes[STORAGE_KEY_TWEETS]) {
-      loadSavedTweetIds().then(() => refreshButtons());
-    }
+  chrome.runtime.onMessage.addListener(message => {
+    if (message.action !== 'dataChanged') return;
+    loadCategories();
+    loadSavedTweetIds().then(() => refreshButtons());
   });
 }
 

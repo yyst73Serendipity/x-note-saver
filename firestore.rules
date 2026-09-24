@@ -1,0 +1,26 @@
+/*
+ * 仅允许指定所有者访问自己的记录；构建时将所有者 UID 写入部署规则。
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owner(uid) {
+      return request.auth != null && request.auth.uid == uid && uid == '__OWNER_UID__';
+    }
+    match /users/{uid}/{kind}/{id} {
+      allow read: if owner(uid) && kind in ['tweets', 'categories', 'settings', 'operations'];
+      allow create, update: if owner(uid) && kind in ['tweets', 'categories', 'settings']
+        && request.resource.data.keys().hasOnly(['data', 'revision', 'deleted', 'conflicts', 'updatedAt'])
+        && request.resource.data.data is map
+        && request.resource.data.revision is int && request.resource.data.revision > 0
+        && request.resource.data.deleted is bool
+        && request.resource.data.conflicts is list
+        && request.resource.data.updatedAt == request.time;
+      allow create: if owner(uid) && kind == 'operations'
+        && request.resource.data.keys().hasOnly(['collection', 'recordId', 'createdAt'])
+        && request.resource.data.collection in ['tweets', 'categories', 'settings']
+        && request.resource.data.recordId is string
+        && request.resource.data.createdAt == request.time;
+    }
+  }
+}

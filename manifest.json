@@ -1,36 +1,41 @@
 {
   "manifest_version": 3,
   "name": "Twitter 笔记收藏",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "浏览 Twitter/x.com 时收藏和分类推文",
-
   "icons": {
     "16": "assets/icon-16.png",
     "48": "assets/icon-48.png",
     "128": "assets/icon-128.png"
   },
-
   "permissions": [
-    "storage"
+    "storage",
+    "unlimitedStorage",
+    "alarms",
+    "offscreen"
   ],
-
   "host_permissions": [
-    "*://*.x.com/*"
+    "*://*.x.com/*",
+    "https://*.googleapis.com/*"
   ],
-
   "background": {
-    "service_worker": "background/background.js"
+    "service_worker": "background/background.js",
+    "type": "module"
   },
-
   "content_scripts": [
     {
-      "matches": ["*://*.x.com/*"],
-      "js": ["content/content.js"],
-      "css": ["content/content.css"],
+      "matches": [
+        "*://*.x.com/*"
+      ],
+      "js": [
+        "content/content.js"
+      ],
+      "css": [
+        "content/content.css"
+      ],
       "run_at": "document_idle"
     }
   ],
-
   "action": {
     "default_title": "Twitter 笔记收藏",
     "default_icon": {
@@ -38,5 +43,10 @@
       "48": "assets/icon-48.png",
       "128": "assets/icon-128.png"
     }
+  },
+  "minimum_chrome_version": "116",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA19qbwCW8XTczKwO9P/haqiwcOX0gUdGbKr52FH+6g38RCpXm3OY9IVbY64fZoOI8rYDCCyU1LsKaYK6HOtgwyNPjWyg1X9/Ia/cOxRwEsHH4pXvBbnJ62L492Crn8YnqFtwb/gkgnikUZRXYeEhIziHsdTgan4vNsRkbGv9A7eIcPgQIqCdKjhFkO0/qY41G7t2+dqCKP8gyPvF5UYySZTb7YqyRjGUC9qnSwNLizlM9hWVOKIKt8Lby2uZS6wpBYjY1Yzg6djsXxvxHQIENjRSc1zj3Bd7QnhClLFRYQgw6qS5+S1dH00se0g88YO6ocf4mUagExh4x7EyHSucKkwIDAQAB",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://*.web.app https://*.firebaseapp.com; connect-src 'self' https://*.googleapis.com https://*.firebaseapp.com https://*.web.app;"
   }
 }

@@ -9,6 +9,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Twitter 笔记收藏</title>
   <link rel="stylesheet" href="manager.css">
+  <link rel="stylesheet" href="cloud-panel.css">
 </head>
 <body class="app-body">
   <div class="app">
@@ -25,6 +26,23 @@
       </div>
     </header>
 
+    <section class="cloud-panel" aria-label="账号与云同步">
+      <div><strong id="cloud-account">本地收藏</strong><span id="cloud-status" role="status" aria-live="polite">正在读取同步状态…</span></div>
+      <div class="cloud-actions">
+        <button id="cloud-login" type="button">使用 Google 登录</button>
+        <button id="cloud-sync" type="button" hidden>立即同步</button>
+        <button id="cloud-migrate" type="button" hidden>迁移本地收藏</button>
+        <button id="cloud-conflicts" type="button" hidden>处理笔记冲突</button>
+        <button id="cloud-cache" type="button" hidden>清除本机缓存</button>
+        <button id="cloud-logout" type="button" hidden>退出登录</button>
+        <a href="setup.html" target="_blank" rel="noopener">配置帮助</a>
+      </div>
+    </section>
+    <dialog id="cloud-dialog" class="cloud-dialog">
+      <h2 id="cloud-dialog-title"></h2>
+      <div id="cloud-dialog-body"></div>
+      <div class="cloud-actions"><button id="cloud-dialog-cancel" type="button">取消</button><button id="cloud-dialog-confirm" type="button">确认</button></div>
+    </dialog>
     <div class="main">
       <!-- 左侧分类栏 -->
       <aside class="sidebar">
@@ -73,7 +91,7 @@
       <div class="modal-overlay hidden" id="clear-modal">
         <div class="modal-dialog">
           <div class="modal-title">数据清空提醒</div>
-          <div class="modal-body">确定清空所有收藏数据和分类吗？此操作不可恢复哦，建议先导出备份。</div>
+          <div class="modal-body">确定删除当前显示的全部收藏和分类吗？登录状态下，删除会同步到其他设备。尚未从其他设备上传的新增记录不在此次范围内。请先导出备份。</div>
           <div class="modal-actions">
             <button class="btn-modal-cancel" id="btn-clear-modal-cancel">取消</button>
             <button class="btn-modal-confirm" id="btn-clear-modal-confirm">确定</button>
@@ -191,5 +209,6 @@
   <div class="toast hidden" id="toast"></div>
 
   <script src="manager.js"></script>
+  <script src="cloud-panel.js"></script>
 </body>
 </html>

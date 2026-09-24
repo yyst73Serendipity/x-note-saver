@@ -1,0 +1,25 @@
+/**
+ * 验证 Firebase 配置与认证跨页面消息的来源检查。
+ */
+import test from 'node:test';
+import assert from 'node:assert/strict';
+const guard = await import('../auth/auth-guard.js').catch(() => ({}));
+test('unconfigured project stays in local mode', () => {
+  assert.equal(typeof guard.isConfigured, 'function');
+  assert.equal(guard.isConfigured({}), false);
+});
+test('auth bridge rejects messages from another origin', () => {
+  assert.equal(typeof guard.isAuthResponse, 'function');
+  const frame = {};
+  assert.equal(guard.isAuthResponse({ origin: 'https://evil.example', source: frame, data: { type: 'x-note-auth-result', requestId: 'nonce' } }, frame, 'https://safe.web.app', 'nonce'), false);
+});
+test('auth bridge rejects stale login responses', () => {
+  assert.equal(typeof guard.isAuthResponse, 'function');
+  const frame = {};
+  assert.equal(guard.isAuthResponse({ origin: 'https://safe.web.app', source: frame, data: { type: 'x-note-auth-result', requestId: 'old' } }, frame, 'https://safe.web.app', 'nonce'), false);
+});
+test('auth bridge accepts the matching source origin and request', () => {
+  assert.equal(typeof guard.isAuthResponse, 'function');
+  const frame = {};
+  assert.equal(guard.isAuthResponse({ origin: 'https://safe.web.app', source: frame, data: { type: 'x-note-auth-result', requestId: 'nonce' } }, frame, 'https://safe.web.app', 'nonce'), true);
+});

@@ -20,3 +20,16 @@ uidraft/
 *.zip
 *.crx
 *.pem
+
+# 构建、测试与本机云配置
+Desktop.ini
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+.Codex/
+AGENTS.md
+work/
+config/firebase.local.json
+.firebase/
+*-debug.log

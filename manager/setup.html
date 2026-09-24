@@ -1,0 +1,32 @@
+<!--
+  Firebase 个人云同步配置帮助，只展示公开项，不收集账号凭据。
+-->
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>云同步配置帮助</title>
+  <style>
+    body { max-width: 760px; margin: 48px auto; padding: 0 24px 60px; color: #1e293b; font: 15px/1.75 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif; }
+    h1 { font-size: 26px; } h2 { margin-top: 30px; font-size: 19px; } code { background: #f1f5f9; padding: 2px 5px; border-radius: 4px; }
+    .note { padding: 12px 15px; border-left: 4px solid #1d9bf0; background: #f0f9ff; }
+  </style>
+</head>
+<body>
+  <h1>Google 账号云同步配置</h1>
+  <p class="note">当前绑定项目：<code>x-note-saver</code>。保持 Spark 免费套餐，不要在配置文件中放入密码、服务账号私钥或 Firebase CLI 登录令牌。</p>
+  <h2>1. 创建 Web 应用</h2>
+  <p>在 Firebase 控制台的“项目设置 → 常规 → 您的应用”中添加 Web 应用，名称填写 <code>x-note-saver-extension</code>，同时勾选 Hosting。复制生成配置里的 <code>apiKey</code> 和 <code>appId</code>。</p>
+  <h2>2. 开启 Google 登录与数据库</h2>
+  <p>在“Authentication → 登录方法”启用 Google；在“Firestore Database”创建 Standard 数据库。位置选离自己较近的区域，并先使用生产模式。</p>
+  <h2>3. 配置扩展</h2>
+  <p>复制 <code>config/firebase.example.json</code> 为 <code>config/firebase.local.json</code>，填写公开客户端配置。运行 <code>npm run build</code>，扩展 ID 会写入 <code>dist/extension-id.txt</code>。</p>
+  <h2>4. 授权扩展来源</h2>
+  <p>在 Authentication 的授权域名中添加 <code>chrome-extension://扩展ID</code>。随后部署 Hosting 登录页，再从管理页登录。</p>
+  <h2>5. 限定个人账号</h2>
+  <p>第一次登录会显示你的 Firebase UID。把它填入 <code>ownerUid</code>，重新构建并部署 Firestore 规则。完成之前，规则会拒绝所有云端数据访问。</p>
+  <h2>6. 加载与迁移</h2>
+  <p>在 <code>chrome://extensions</code> 加载 <code>dist/extension</code>。登录后先下载迁移前 JSON 备份，再确认把旧收藏合并到云端。</p>
+</body>
+</html>

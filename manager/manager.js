@@ -219,11 +219,20 @@ async function init() {
 
 /**
  * 更新存储配额条
- * 显示 storage.local 已用空间占比，≥80% 警告，≥95% 严重
+ * 显示 storage.local 已用空间；云同步版拥有 unlimitedStorage 权限，不再显示虚假的 10 MB 上限。
  */
 async function updateStorageQuota() {
   try {
     const bytesInUse = await chrome.storage.local.getBytesInUse(null);
+    const unlimited = await chrome.permissions.contains({ permissions: ['unlimitedStorage'] });
+    if (unlimited) {
+      const unit = bytesInUse < 1024 * 1024 ? 'KB' : 'MB';
+      const divisor = unit === 'KB' ? 1024 : 1024 * 1024;
+      storageQuotaFill.style.width = '0';
+      storageQuotaText.textContent = `本地缓存 ${(bytesInUse / divisor).toFixed(1)} ${unit} · 已启用扩展存储权限`;
+      storageQuotaBar.classList.remove('warning', 'critical');
+      return;
+    }
     // 动态读取当前浏览器 storage.local 实际配额（老版本 5MB / 新版本 10MB）
     const quotaBytes = chrome.storage.local.QUOTA_BYTES || (10 * 1024 * 1024);
     const quotaMb = quotaBytes / (1024 * 1024);
@@ -602,16 +611,15 @@ function closeAllDropdowns() {
 async function changeTweetCategory(id, newCategory) {
   try {
     const resp = await chrome.runtime.sendMessage({ action: 'updateCategory', id, category: newCategory });
+    if (!resp.success) throw new Error(resp.error || '操作失败');
     if (resp.success) {
       const tweet = tweets.find(t => t.id === id);
       if (tweet) tweet.category = newCategory;
       renderCategories();
     }
   } catch (err) {
-    const tweet = tweets.find(t => t.id === id);
-    if (tweet) tweet.category = newCategory;
-    await chrome.storage.local.set({ twitter_notes: tweets });
-    renderCategories();
+    showToast(err.message || '分类修改失败，请重试', 'error');
+    await init();
   }
 }
 
@@ -627,12 +635,13 @@ async function toggleReadLater(id, btn) {
 
   try {
     const resp = await chrome.runtime.sendMessage({ action: 'updateReadLater', id, readLater: newState });
+    if (!resp.success) throw new Error(resp.error || '保存失败');
     if (resp.success) {
       tweet.readLater = newState;
     }
   } catch (err) {
-    tweet.readLater = newState;
-    await chrome.storage.local.set({ twitter_notes: tweets });
+    showToast(err.message || '保存失败，请重试', 'error');
+    return;
   }
 
   // 更新按钮视觉态（图标随状态切换）
@@ -1029,24 +1038,19 @@ async function saveNoteModal() {
   addTagFromInput(noteModalTags.value);
   const tags = [...currentTags];
 
-  // 先更新内存，再持久化；消息通道失败时整库写 storage 兜底
-  const tweet = tweets.find(t => t.id === id);
-  if (tweet) {
-    tweet.note = note;
-    tweet.tags = tags;
-  }
 
   try {
     const resp = await chrome.runtime.sendMessage({ action: 'updateNoteTags', id, note, tags });
     if (!resp.success) throw new Error(resp.error || '保存失败');
   } catch (err) {
-    await chrome.storage.local.set({ twitter_notes: tweets });
+    showToast(err.message || '保存失败，请重试', 'error');
+    return;
   }
 
   noteModal.classList.add('hidden');
   editingTweetId = null;
   currentTags = [];
-  renderAll();
+  await init();
 }
 
 /* ========== 分类管理 ========== */
@@ -1092,8 +1096,8 @@ async function reorderCategory(dragged, target, before) {
     categories = resp.data;
     renderCategories();
   } catch (err) {
-    // 消息通道失败时直接写 storage 兜底
-    await chrome.storage.local.set({ twitter_categories: categories });
+    showToast(err.message || '排序失败，请重试', 'error');
+    await init();
   }
 }
 
@@ -1270,18 +1274,17 @@ async function handleImportFile(file) {
     return;
   }
 
-  // 统计：新增分类数、新增推文数、跳过重复数
-  const newCats = (data.categories || []).filter(cat => !categories.includes(cat));
-  const existingIds = new Set(tweets.map(t => t.tweetId));
-  const newTweets = data.tweets.filter(t => !existingIds.has(t.tweetId));
-
-  const html =
-    `文件共 <span class="num">${data.tweets.length}</span> 条推文，确认后将合并到当前收藏。<br>` +
-    `🗂️ 将新增分类 <span class="num num-add">${newCats.length}</span> 个，<br>` +
-    `📝 将新增推文 <span class="num num-add">${newTweets.length}</span> 条，<br>` +
-    `⏭️ 将跳过重复 <span class="num num-skip">${data.tweets.length - newTweets.length}</span> 条。`;
-
-  importPreviewBody.innerHTML = html;
+  let preview;
+  try {
+    const response = await chrome.runtime.sendMessage({ action: 'importPreview', data });
+    if (!response.success) throw new Error(response.error);
+    preview = response.data;
+  } catch (error) {
+    showToast(error.message || '导入预览失败', 'error');
+    return;
+  }
+  const newTweets = data.tweets;
+  importPreviewBody.textContent = `文件共 ${preview.local} 条收藏，将新增 ${preview.additions} 条，合并重复 ${preview.duplicates} 条，笔记冲突 ${preview.conflicts} 条。不同笔记会保留供你选择。`;
 
   // 暂存待导入数据，供确认阶段使用
   importPreviewModal._pendingData = data;
@@ -1296,53 +1299,20 @@ async function handleImportFile(file) {
 async function confirmImport() {
   const data = importPreviewModal._pendingData;
   if (!data) return;
-  importPreviewModal.classList.add('hidden');
-
+  btnPreviewConfirm.disabled = true;
   try {
-    // 合并分类
-    if (data.categories && Array.isArray(data.categories)) {
-      for (const cat of data.categories) {
-        if (!categories.includes(cat)) {
-          const resp = await chrome.runtime.sendMessage({ action: 'addCategory', name: cat });
-          if (resp.success) categories = resp.data;
-        }
-      }
-    }
-
-    // 合并推文（按 tweetId 去重）
-    const existingIds = new Set(tweets.map(t => t.tweetId));
-    const newTweets = [];
-    for (const tweet of data.tweets) {
-      if (!existingIds.has(tweet.tweetId)) {
-        if (!categories.includes(tweet.category)) {
-          tweet.category = '未分类';
-        }
-        const resp = await chrome.runtime.sendMessage({ action: 'saveTweet', data: tweet });
-        if (resp.success && resp.data) {
-          newTweets.push(resp.data);
-          existingIds.add(tweet.tweetId);
-        }
-      }
-    }
-
-    // 重新加载
-    const tweetResp = await chrome.runtime.sendMessage({ action: 'getTweets' });
-    if (tweetResp.success) tweets = tweetResp.data;
-
-    renderAll();
-
-    // 有新增推文即视为导入成功，否则提示失败
-    if (newTweets.length > 0) {
-      showToast('导入成功', 'success');
-    } else {
-      showToast('导入失败', 'error');
-    }
-  } catch (err) {
-    showToast('导入失败', 'error');
+    const response = await chrome.runtime.sendMessage({ action: 'importData', data });
+    if (!response.success) throw new Error(response.error);
+    importPreviewModal.classList.add('hidden');
+    importPreviewModal._pendingData = null;
+    importPreviewModal._pendingNewTweets = null;
+    await init();
+    showToast(`导入完成：新增 ${response.data.additions} 条，合并 ${response.data.duplicates} 条`, 'success');
+  } catch (error) {
+    showToast(error.message || '导入失败', 'error');
+  } finally {
+    btnPreviewConfirm.disabled = false;
   }
-
-  importPreviewModal._pendingData = null;
-  importPreviewModal._pendingNewTweets = null;
 }
 
 /**
@@ -1377,10 +1347,8 @@ function showClearModal() {
  */
 async function confirmClear() {
   try {
-    await chrome.storage.local.set({
-      twitter_notes: [],
-      twitter_categories: ['未分类']
-    });
+    const response = await chrome.runtime.sendMessage({ action: 'clearAll' });
+    if (!response.success) throw new Error(response.error);
     tweets = [];
     categories = ['未分类'];
     currentCategory = '全部';
@@ -1389,7 +1357,7 @@ async function confirmClear() {
     clearModal.classList.add('hidden');
     renderAll();
   } catch (err) {
-    alert('清空失败');
+    alert(err.message || '清空失败');
   }
 }
 
@@ -1539,5 +1507,11 @@ noteModalTags.addEventListener('input', () => {
 /* 点击其他地方关闭分类下拉 */
 document.addEventListener('click', closeAllDropdowns);
 
+// 云快照或另一个页面变更后刷新；编辑中的文本保留在弹窗中。
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local' || !changes.x_note_state_v2) return;
+  init();
+});
+window.addEventListener('focus', () => chrome.runtime.sendMessage({ action: 'syncNow' }).catch(() => {}));
 // 启动
 init();

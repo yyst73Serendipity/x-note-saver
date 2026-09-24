@@ -1,0 +1,18 @@
+/*
+ * 账号、同步状态与迁移弹窗，沿用管理页的简洁按钮和留白。
+ */
+.cloud-panel { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 12px 24px; border-bottom: 1px solid #e5e7eb; background: #fff; font-size: 13px; }
+#cloud-status { margin-left: 12px; color: #64748b; }
+#cloud-status[data-phase="error"] { color: #b45309; }
+.cloud-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.cloud-actions button { padding: 7px 11px; border: 1px solid #dbe2ea; border-radius: 7px; background: white; color: #334155; cursor: pointer; font: inherit; }
+.cloud-actions button:hover { background: #f1f5f9; }
+.cloud-actions button:disabled { cursor: wait; opacity: .55; }
+.cloud-actions [hidden] { display: none; }
+.cloud-actions a { color: #475569; font-size: 12px; }
+.cloud-dialog { border: 1px solid #e2e8f0; border-radius: 14px; padding: 24px; width: min(560px, 85vw); max-height: 80vh; color: #1e293b; }
+.cloud-dialog::backdrop { background: rgb(15 23 42 / 35%); }
+.cloud-dialog h2 { font-size: 19px; margin: 0 0 16px; }
+.cloud-dialog p { font-size: 14px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+.cloud-dialog textarea { width: 100%; box-sizing: border-box; min-height: 150px; padding: 10px; margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; }
+.cloud-dialog .cloud-actions { margin-top: 18px; justify-content: flex-end; }
