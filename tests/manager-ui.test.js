@@ -55,6 +55,8 @@ test('post list includes the approved quick navigation rail', () => {
   assert.match(managerCss, /\.post-navigator-mark::before/);
   assert.match(managerCss, /flex:\s*1 1 0/);
   assert.match(managerCss, /\.post-navigator\.is-scrollable/);
+  assert.match(managerCss, /\.post-navigator\s*\{[\s\S]*?left:\s*2px/);
+  assert.match(managerCss, /\.tweet-list-stage\.has-post-navigator \.tweet-list\s*\{[\s\S]*?padding-left:\s*30px/);
   assert.match(scrollNavigatorJs, /ArrowDown/);
   assert.match(scrollNavigatorJs, /card\.focus\(\{ preventScroll: true \}\)/);
   assert.match(managerCss, /@media\s*\(max-width:\s*768px\)[\s\S]*\.post-navigator/);

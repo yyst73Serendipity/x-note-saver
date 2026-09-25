@@ -951,21 +951,21 @@ body {
 }
 
 .tweet-list-stage.has-post-navigator .tweet-list {
-  padding-right: 30px;
+  padding-left: 30px;
 }
 
 /* ===== 帖子快速导航 ===== */
 .post-navigator {
   position: absolute;
   top: 6px;
-  right: 2px;
+  left: 2px;
   bottom: 6px;
   z-index: 5;
   display: flex;
   flex-direction: column;
   width: 22px;
   padding: 5px 2px;
-  border-left: 1px solid #DBEAFE;
+  border-right: 1px solid #DBEAFE;
   border-radius: 8px;
   background: linear-gradient(90deg, rgb(239 246 255 / 78%), rgb(255 255 255 / 92%));
 }
@@ -1625,7 +1625,7 @@ body {
   }
 
   .tweet-list-stage.has-post-navigator .tweet-list {
-    padding-right: 0;
+    padding-left: 0;
   }
 
   .toolbar {
