@@ -934,13 +934,97 @@ body {
 }
 
 /* ===== 推文卡片列表 ===== */
+.tweet-list-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
 .tweet-list {
   display: flex;
   flex-direction: column;
   gap: 0;
-  flex: 1;
+  height: 100%;
   overflow-y: auto;
   min-height: 0;
+  scrollbar-gutter: stable;
+}
+
+.tweet-list-stage.has-post-navigator .tweet-list {
+  padding-right: 30px;
+}
+
+/* ===== 帖子快速导航 ===== */
+.post-navigator {
+  position: absolute;
+  top: 6px;
+  right: 2px;
+  bottom: 6px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  width: 22px;
+  padding: 5px 2px;
+  border-left: 1px solid #DBEAFE;
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgb(239 246 255 / 78%), rgb(255 255 255 / 92%));
+}
+
+.post-navigator-mark {
+  position: relative;
+  flex: 1 1 0;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.post-navigator-mark::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 2px;
+  border-radius: 999px;
+  background: #CBD5E1;
+  content: '';
+  transform: translate(-50%, -50%);
+  transition: width .12s ease, background-color .12s ease, box-shadow .12s ease;
+}
+
+.post-navigator-mark:hover,
+.post-navigator-mark:focus-visible {
+  outline: 2px solid rgb(37 99 235 / 22%);
+  outline-offset: -2px;
+  background: rgb(219 234 254 / 45%);
+}
+
+.post-navigator-mark:hover::before,
+.post-navigator-mark:focus-visible::before {
+  width: 16px;
+  background: var(--accent-status);
+  box-shadow: 0 0 0 2px rgb(37 99 235 / 12%);
+}
+
+.post-navigator-mark.is-visible::before {
+  width: 14px;
+  background: var(--accent);
+}
+
+.post-navigator.is-scrollable {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.post-navigator.is-scrollable::-webkit-scrollbar {
+  display: none;
+}
+
+.post-navigator.is-scrollable .post-navigator-mark {
+  flex: 0 0 8px;
 }
 
 /* ===== 推文卡片 ===== */
@@ -968,6 +1052,13 @@ body {
 
 .tweet-card:hover {
   background: var(--bg-card-hover);
+}
+
+.tweet-card:focus-visible {
+  position: relative;
+  z-index: 2;
+  outline: 3px solid rgb(37 99 235 / 24%);
+  outline-offset: -3px;
 }
 
 .tweet-card-header {
@@ -1408,10 +1499,12 @@ body {
 
 /* ===== 空状态 ===== */
 .empty-state {
+  position: absolute;
+  inset: 0;
   display: grid;
   place-content: center;
   min-height: 210px;
-  margin-top: 2px;
+  margin: 0;
   text-align: center;
   padding: 32px 20px;
   border: 1px dashed var(--border-card);
@@ -1525,6 +1618,14 @@ body {
 
   .content {
     min-height: 480px;
+  }
+
+  .post-navigator {
+    display: none !important;
+  }
+
+  .tweet-list-stage.has-post-navigator .tweet-list {
+    padding-right: 0;
   }
 
   .toolbar {

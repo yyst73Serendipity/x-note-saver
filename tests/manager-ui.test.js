@@ -9,6 +9,7 @@ const html = await readFile('manager/manager.html', 'utf8');
 const managerCss = await readFile('manager/manager.css', 'utf8');
 const cloudCss = await readFile('manager/cloud-panel.css', 'utf8');
 const managerJs = await readFile('manager/manager.js', 'utf8');
+const scrollNavigatorJs = await readFile('manager/scroll-navigator.js', 'utf8').catch(() => '');
 
 test('manager uses the approved archive structure and copy', () => {
   assert.match(html, /<h1 class="header-title">我的帖子札记<\/h1>/);
@@ -44,4 +45,17 @@ test('unlimited storage is presented as text without a percentage track', () => 
   assert.doesNotMatch(html, /storage-quota-track|storage-quota-fill/);
   assert.doesNotMatch(managerJs, /storageQuotaFill/);
   assert.match(html, /id="storage-quota-text"/);
+});
+
+test('post list includes the approved quick navigation rail', () => {
+  assert.match(html, /id="post-navigator"/);
+  assert.match(html, /aria-label="帖子快速导航"/);
+  assert.match(html, /type="module" src="scroll-navigator\.js"/);
+  assert.match(managerCss, /\.post-navigator-mark\.is-visible/);
+  assert.match(managerCss, /\.post-navigator-mark::before/);
+  assert.match(managerCss, /flex:\s*1 1 0/);
+  assert.match(managerCss, /\.post-navigator\.is-scrollable/);
+  assert.match(scrollNavigatorJs, /ArrowDown/);
+  assert.match(scrollNavigatorJs, /card\.focus\(\{ preventScroll: true \}\)/);
+  assert.match(managerCss, /@media\s*\(max-width:\s*768px\)[\s\S]*\.post-navigator/);
 });
