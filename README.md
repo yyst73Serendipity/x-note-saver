@@ -38,7 +38,7 @@ x-note-saver/
 ## 🛠 技术栈
 
 - 原生 JavaScript、Chrome Extension Manifest V3
-- Firebase Authentication、Cloud Firestore、Firebase Hosting
+- Firebase Authentication、Cloud Firestore Lite、Firebase Hosting
 - Firebase Web SDK 12、esbuild、Node.js 内置测试工具
 
 ## 🚀 安装和使用
@@ -56,15 +56,17 @@ x-note-saver/
 
 ### 1. 打开收藏管理页
 
-点击 Chrome 工具栏中的“Twitter 笔记收藏”扩展图标，会打开独立的收藏管理页。若图标没有显示，先点击 Chrome 工具栏的“扩展程序”按钮，再将本扩展固定到工具栏。
+点击 Chrome 工具栏中的“Twitter 笔记收藏”扩展图标，会打开标题为“我的帖子札记”的独立收藏管理页。若图标没有显示，先点击 Chrome 工具栏的“扩展程序”按钮，再将本扩展固定到工具栏。
 
 管理页主要包含以下区域：
 
 - **账号与云同步**：查看当前 Google 账号和同步状态，也可以立即同步、退出登录或清除本机缓存
-- **左侧分类栏**：查看全部、稍后阅读和未分类内容，点击 `+` 新建分类
+- **左侧分类栏**：查看全部、稍后阅读和未分类内容，点击 `+` 新建分类；自定义分类支持拖拽排序、重命名和删除
 - **搜索与排序**：按帖子正文或作者搜索，并按收藏时间排序
 - **帖子卡片**：编辑笔记和标签、调整分类、打开原文或删除收藏
 - **顶部工具栏**：导出、导入或清空数据；执行清空前建议先导出 JSON 备份
+
+管理页使用蓝色标示当前分类、同步状态和关键交互。内容区底部显示的是本机缓存大小，它是为了快速读取和离线操作保留的本地工作副本，不是 Firebase 云端存储配额。
 
 ### 2. 在 X 页面收藏帖子
 
