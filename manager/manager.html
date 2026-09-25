@@ -16,18 +16,23 @@
     <!-- 顶部栏 -->
     <header class="header">
       <div class="header-left">
-        <h1 class="header-title">Twitter 笔记收藏</h1>
-        <span class="header-subtitle">整理收藏，分类笔记，一键跳转原文</span>
+        <span class="header-eyebrow">PERSONAL ARCHIVE</span>
+        <h1 class="header-title">我的帖子札记</h1>
+        <span class="header-subtitle">把值得回看的内容，整理成自己的资料库</span>
       </div>
       <div class="header-actions">
-        <button class="btn-header" id="btn-export">导出</button>
+        <button class="btn-header" id="btn-export">导出备份</button>
         <button class="btn-header" id="btn-import">导入</button>
         <button class="btn-header btn-header-danger" id="btn-clear">清空</button>
       </div>
     </header>
 
     <section class="cloud-panel" aria-label="账号与云同步">
-      <div><strong id="cloud-account">本地收藏</strong><span id="cloud-status" role="status" aria-live="polite">正在读取同步状态…</span></div>
+      <div class="cloud-identity">
+        <span class="cloud-status-dot" aria-hidden="true"></span>
+        <strong id="cloud-account">本地收藏</strong>
+        <span id="cloud-status" role="status" aria-live="polite">正在读取同步状态…</span>
+      </div>
       <div class="cloud-actions">
         <button id="cloud-login" type="button">使用 Google 登录</button>
         <button id="cloud-sync" type="button" hidden>立即同步</button>
@@ -47,7 +52,7 @@
       <!-- 左侧分类栏 -->
       <aside class="sidebar">
         <div class="sidebar-header">
-          <span class="sidebar-title">分类</span>
+          <span class="sidebar-title">分类目录</span>
           <button class="btn-add-cat" id="btn-add-cat" title="新建分类">+</button>
         </div>
         <ul class="category-list" id="category-list">
@@ -187,15 +192,12 @@
               <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
             </svg>
           </div>
-          <p>还没有收藏的推文</p>
-          <p class="empty-hint">去 Twitter 浏览推文，点击推文旁的收藏按钮吧</p>
+          <p>这里还没有收藏</p>
+          <p class="empty-hint">前往 X，在帖子操作栏点击星形按钮</p>
         </div>
 
-        <!-- 存储配额条 -->
+        <!-- 本机缓存说明 -->
         <div class="storage-quota-bar" id="storage-quota-bar">
-          <div class="storage-quota-track">
-            <div class="storage-quota-fill" id="storage-quota-fill"></div>
-          </div>
           <span class="storage-quota-text" id="storage-quota-text"></span>
         </div>
       </section>

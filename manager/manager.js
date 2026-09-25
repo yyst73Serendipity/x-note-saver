@@ -116,7 +116,6 @@ const btnNoteModalConfirm = document.getElementById('btn-note-modal-confirm');
 
 /* 存储配额条 DOM 引用 */
 const storageQuotaBar = document.getElementById('storage-quota-bar');
-const storageQuotaFill = document.getElementById('storage-quota-fill');
 const storageQuotaText = document.getElementById('storage-quota-text');
 
 /**
@@ -218,50 +217,33 @@ async function init() {
 }
 
 /**
- * 更新存储配额条
- * 显示 storage.local 已用空间；云同步版拥有 unlimitedStorage 权限，不再显示虚假的 10 MB 上限。
+ * 更新本机缓存说明；拥有 unlimitedStorage 时不展示没有固定分母的百分比。
  */
 async function updateStorageQuota() {
   try {
     const bytesInUse = await chrome.storage.local.getBytesInUse(null);
     const unlimited = await chrome.permissions.contains({ permissions: ['unlimitedStorage'] });
-    if (unlimited) {
-      const unit = bytesInUse < 1024 * 1024 ? 'KB' : 'MB';
-      const divisor = unit === 'KB' ? 1024 : 1024 * 1024;
-      storageQuotaFill.style.width = '0';
-      storageQuotaText.textContent = `本地缓存 ${(bytesInUse / divisor).toFixed(1)} ${unit} · 已启用扩展存储权限`;
-      storageQuotaBar.classList.remove('warning', 'critical');
-      return;
-    }
-    // 动态读取当前浏览器 storage.local 实际配额（老版本 5MB / 新版本 10MB）
-    const quotaBytes = chrome.storage.local.QUOTA_BYTES || (10 * 1024 * 1024);
-    const quotaMb = quotaBytes / (1024 * 1024);
-    const percent = (bytesInUse / quotaBytes) * 100;
-
-    // 用量小于 1MB 时用 KB 显示，避免小数据量被四舍五入成 0.0 MB
-    let usedText;
-    if (bytesInUse < 1024 * 1024) {
-      usedText = (bytesInUse / 1024).toFixed(1) + ' KB';
-    } else {
-      usedText = (bytesInUse / (1024 * 1024)).toFixed(1) + ' MB';
-    }
-
-    // 进度条至少占 1% 宽度，让非空存储有视觉反馈
-    const fillPercent = bytesInUse > 0 ? Math.max(percent, 1) : 0;
-    storageQuotaFill.style.width = Math.min(fillPercent, 100) + '%';
-    storageQuotaText.textContent =
-      `本地存储 ${usedText} / ${quotaMb} MB (${percent.toFixed(0)}%)`;
+    const unit = bytesInUse < 1024 * 1024 ? 'KB' : 'MB';
+    const divisor = unit === 'KB' ? 1024 : 1024 * 1024;
+    const usedText = `${(bytesInUse / divisor).toFixed(1)} ${unit}`;
 
     storageQuotaBar.classList.remove('warning', 'critical');
+    if (unlimited) {
+      storageQuotaText.textContent = `本地缓存 ${usedText} · 已启用扩展存储权限`;
+      return;
+    }
+
+    // 未授权 unlimitedStorage 时保留真实配额警告，但只用文字表达。
+    const quotaBytes = chrome.storage.local.QUOTA_BYTES || 10 * 1024 * 1024;
+    const percent = bytesInUse / quotaBytes * 100;
+    storageQuotaText.textContent = `本地存储 ${usedText} · 已使用 ${percent.toFixed(0)}%`;
     if (percent >= 95) {
       storageQuotaBar.classList.add('critical');
-      storageQuotaText.textContent += ' — 空间即将耗尽，请尽快导出清理';
     } else if (percent >= 80) {
       storageQuotaBar.classList.add('warning');
-      storageQuotaText.textContent += ' — 空间即将用尽，建议导出后清理';
     }
-  } catch (err) {
-    // getBytesInUse 失败时静默处理，不影响主流程
+  } catch (error) {
+    storageQuotaText.textContent = '无法读取本机缓存用量';
   }
 }
 
