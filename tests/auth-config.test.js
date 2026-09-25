@@ -3,6 +3,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 const guard = await import('../auth/auth-guard.js').catch(() => ({}));
 test('unconfigured project stays in local mode', () => {
   assert.equal(typeof guard.isConfigured, 'function');
@@ -22,4 +23,10 @@ test('auth bridge accepts the matching source origin and request', () => {
   assert.equal(typeof guard.isAuthResponse, 'function');
   const frame = {};
   assert.equal(guard.isAuthResponse({ origin: 'https://safe.web.app', source: frame, data: { type: 'x-note-auth-result', requestId: 'nonce' } }, frame, 'https://safe.web.app', 'nonce'), true);
+});
+test('project root can be reloaded without changing the unpacked extension path', async () => {
+  const manifest = JSON.parse(await readFile('manifest.json', 'utf8'));
+  const offscreen = await readFile('offscreen/offscreen.html', 'utf8');
+  assert.equal(manifest.background.service_worker, 'build/background.js');
+  assert.equal(offscreen.includes('../build/offscreen.js'), true);
 });

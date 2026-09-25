@@ -16,10 +16,11 @@
   ],
   "host_permissions": [
     "*://*.x.com/*",
-    "https://*.googleapis.com/*"
+    "https://*.googleapis.com/*",
+    "https://*.web.app/*"
   ],
   "background": {
-    "service_worker": "background/background.js",
+    "service_worker": "build/background.js",
     "type": "module"
   },
   "content_scripts": [

@@ -46,8 +46,8 @@ x-note-saver/
 1. 安装依赖：`npm install`
 2. 按 [Firebase 配置说明](docs/firebase-setup.md) 创建 `config/firebase.local.json`
 3. 构建：`npm run build`
-4. 打开 `chrome://extensions/`，开启开发者模式
-5. 点击“加载已解压的扩展程序”，选择 `dist/extension`
+4. 已经从项目根目录加载旧版扩展时，在 `chrome://extensions/` 点击该扩展的“重新加载”，原有本地收藏会保留
+5. 首次安装时，开启开发者模式，点击“加载已解压的扩展程序”，选择 `dist/extension`
 6. 打开管理页，登录同一个 Google 账号并确认迁移本地收藏
 
 只使用本地收藏时，可以在没有 Firebase 配置的情况下构建和加载，界面会明确显示“未配置云服务”。

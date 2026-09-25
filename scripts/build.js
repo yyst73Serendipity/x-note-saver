@@ -20,16 +20,23 @@ if (config.authPageUrl) {
   manifest.content_security_policy.extension_pages = `script-src 'self'; object-src 'self'; frame-src ${origin}; connect-src 'self' https://*.googleapis.com https://*.firebaseapp.com ${origin};`;
 }
 await rm('dist', { recursive: true, force: true });
+await rm('build', { recursive: true, force: true });
+await mkdir('build', { recursive: true });
 await mkdir('dist/extension', { recursive: true });
 await mkdir('dist/hosting', { recursive: true });
 for (const directory of ['assets', 'content', 'manager']) await cp(directory, `dist/extension/${directory}`, { recursive: true });
 await mkdir('dist/extension/offscreen', { recursive: true });
-await cp('offscreen/offscreen.html', 'dist/extension/offscreen/offscreen.html');
+await writeFile('dist/extension/offscreen/offscreen.html', (await readFile('offscreen/offscreen.html', 'utf8')).replace('../build/offscreen.js', 'offscreen.js'));
 await cp('auth-page/index.html', 'dist/hosting/index.html');
-await writeFile('dist/extension/manifest.json', JSON.stringify(manifest, null, 2) + '\n');
+const distManifest = structuredClone(manifest);
+distManifest.background.service_worker = 'background/background.js';
+await writeFile('dist/extension/manifest.json', JSON.stringify(distManifest, null, 2) + '\n');
 const options = { bundle: true, platform: 'browser', target: 'chrome116', define: { __FIREBASE_CONFIG__: JSON.stringify(config), __EXTENSION_ID__: JSON.stringify(id) }, legalComments: 'eof', minify: true };
-await build({ ...options, entryPoints: ['background/background.js'], outfile: 'dist/extension/background/background.js', format: 'esm' });
-await build({ ...options, entryPoints: ['offscreen/offscreen.js'], outfile: 'dist/extension/offscreen/offscreen.js', format: 'iife' });
+await build({ ...options, entryPoints: ['background/background.js'], outfile: 'build/background.js', format: 'esm' });
+await build({ ...options, entryPoints: ['offscreen/offscreen.js'], outfile: 'build/offscreen.js', format: 'iife' });
+await mkdir('dist/extension/background', { recursive: true });
+await cp('build/background.js', 'dist/extension/background/background.js');
+await cp('build/offscreen.js', 'dist/extension/offscreen/offscreen.js');
 await build({ ...options, entryPoints: ['auth-page/sign-in.js'], outfile: 'dist/hosting/sign-in.js', format: 'iife' });
 await writeFile('dist/firestore.rules', (await readFile('firestore.rules', 'utf8')).replaceAll('__OWNER_UID__', config.ownerUid || '__OWNER_UID__'));
 await writeFile('dist/extension-id.txt', id + '\n');
