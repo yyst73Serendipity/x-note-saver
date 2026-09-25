@@ -1,7 +1,7 @@
 /**
  * Firestore 边界：带回执的幂等事务以及按服务端时间分页读取的增量快照。
  */
-import { collection, doc, runTransaction, serverTimestamp, query, orderBy, documentId, startAt, startAfter, limit, getDocsFromServer, Timestamp } from 'firebase/firestore';
+import { collection, doc, runTransaction, serverTimestamp, query, orderBy, documentId, startAt, startAfter, limit, getDocs, Timestamp } from 'firebase/firestore/lite';
 import { mergeOperation } from '../storage/model.js';
 
 /** 网络超时不撤销可能已提交的事务；持久回执保证下一次重试安全。 */
@@ -44,7 +44,7 @@ export class CloudStore {
       if (after) constraints.push(startAfter(after.time, after.id));
       else if (cursor) constraints.push(startAt(new Timestamp(cursor.seconds, cursor.nanoseconds)));
       constraints.push(limit(pageSize));
-      const snapshot = await deadline(getDocsFromServer(query(collection(this.db, 'users', uid, kind), ...constraints)));
+      const snapshot = await deadline(getDocs(query(collection(this.db, 'users', uid, kind), ...constraints)));
       if (snapshot.empty) return;
       const last = snapshot.docs.at(-1);
       const time = last.data().updatedAt;

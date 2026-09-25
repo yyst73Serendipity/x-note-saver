@@ -30,3 +30,11 @@ test('project root can be reloaded without changing the unpacked extension path'
   assert.equal(manifest.background.service_worker, 'build/background.js');
   assert.equal(offscreen.includes('../build/offscreen.js'), true);
 });
+
+test('firestore uses the fetch based lite client inside the extension service worker', async () => {
+  const firebaseClient = await readFile('auth/firebase-client.js', 'utf8');
+  const cloudStore = await readFile('sync/cloud-store.js', 'utf8');
+  assert.match(firebaseClient, /from 'firebase\/firestore\/lite'/);
+  assert.match(cloudStore, /from 'firebase\/firestore\/lite'/);
+  assert.doesNotMatch(cloudStore, /getDocsFromServer/);
+});
