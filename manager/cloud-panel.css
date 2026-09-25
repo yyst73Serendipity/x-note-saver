@@ -1,18 +1,105 @@
 /*
- * 账号、同步状态与迁移弹窗，沿用管理页的简洁按钮和留白。
+ * 账号、同步状态与迁移弹窗，使用蓝色资料库界面的统一按钮和留白。
  */
-.cloud-panel { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 12px 24px; border-bottom: 1px solid #e5e7eb; background: #fff; font-size: 13px; }
-#cloud-status { margin-left: 12px; color: #64748b; }
-#cloud-status[data-phase="error"] { color: #b45309; }
-.cloud-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.cloud-actions button { padding: 7px 11px; border: 1px solid #dbe2ea; border-radius: 7px; background: white; color: #334155; cursor: pointer; font: inherit; }
-.cloud-actions button:hover { background: #f1f5f9; }
-.cloud-actions button:disabled { cursor: wait; opacity: .55; }
+.cloud-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  background: #fff;
+  font-size: 13px;
+}
+
+.cloud-identity {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  min-width: 0;
+}
+
+.cloud-status-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--accent-status);
+  box-shadow: 0 0 0 4px rgb(59 130 246 / 14%);
+}
+
+#cloud-account {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#cloud-status { color: var(--text-secondary); }
+#cloud-status[data-phase="error"] { color: var(--danger); }
+
+.cloud-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cloud-actions button {
+  padding: 8px 12px;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+  font: inherit;
+  transition: color .15s ease, border-color .15s ease, background .15s ease;
+}
+
+.cloud-actions button:hover {
+  border-color: #BFDBFE;
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+}
+
+.cloud-actions button:focus-visible,
+.cloud-actions a:focus-visible {
+  outline: 3px solid rgb(37 99 235 / 24%);
+  outline-offset: 2px;
+}
+
+.cloud-actions button:disabled {
+  cursor: wait;
+  opacity: .5;
+}
+
 .cloud-actions [hidden] { display: none; }
-.cloud-actions a { color: #475569; font-size: 12px; }
-.cloud-dialog { border: 1px solid #e2e8f0; border-radius: 14px; padding: 24px; width: min(560px, 85vw); max-height: 80vh; color: #1e293b; }
+
+.cloud-actions a {
+  color: #475569;
+  font-size: 12px;
+  text-underline-offset: 3px;
+}
+
+.cloud-dialog {
+  width: min(560px, 85vw);
+  max-height: 80vh;
+  padding: 24px;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+  box-shadow: 0 24px 60px rgb(15 23 42 / 18%);
+}
+
 .cloud-dialog::backdrop { background: rgb(15 23 42 / 35%); }
-.cloud-dialog h2 { font-size: 19px; margin: 0 0 16px; }
+.cloud-dialog h2 { margin: 0 0 16px; font-size: 19px; }
 .cloud-dialog p { font-size: 14px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
-.cloud-dialog textarea { width: 100%; box-sizing: border-box; min-height: 150px; padding: 10px; margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; }
+.cloud-dialog textarea { width: 100%; min-height: 150px; padding: 10px; margin-bottom: 14px; border: 1px solid var(--border-card); border-radius: var(--radius-sm); font: inherit; }
 .cloud-dialog .cloud-actions { margin-top: 18px; justify-content: flex-end; }
+
+@media (max-width: 768px) {
+  .cloud-panel { align-items: stretch; }
+  .cloud-identity, .cloud-actions { width: 100%; }
+}

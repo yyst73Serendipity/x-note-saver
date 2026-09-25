@@ -1,6 +1,6 @@
 /**
  * manager.css - Twitter 笔记收藏管理页面样式
- * Twitter 蓝黑配色，单列推文卡片流，分类侧栏
+ * 蓝色资料库配色，单列帖子卡片流，分类侧栏
  */
 
 /* ===== 基础重置 ===== */
@@ -8,27 +8,28 @@
 
 /* ===== CSS 变量 ===== */
 :root {
-  --bg-page: #E8EDF2;
+  --bg-page: #F4F7FA;
   --bg-sidebar: #FFFFFF;
-  --bg-sidebar-hover: #F7F9F9;
-  --bg-sidebar-active: #E8F5FD;
-  --text-primary: #0F1419;
-  --text-secondary: #536471;
-  --text-muted: #536471;
-  --accent: #1D9BF0;
-  --accent-hover: #1a8cd8;
-  --accent-soft: rgba(29, 155, 240, 0.08);
+  --bg-sidebar-hover: #F8FAFC;
+  --bg-sidebar-active: #EAF2FF;
+  --text-primary: #111827;
+  --text-secondary: #64748B;
+  --text-muted: #94A3B8;
+  --accent: #2563EB;
+  --accent-hover: #1D4ED8;
+  --accent-status: #3B82F6;
+  --accent-soft: #EAF2FF;
   --bg-card: #FFFFFF;
-  --bg-card-hover: #F4F7F9;
-  --border-card: #D8E0E6;
-  --border-subtle: #D8E0E6;
-  --danger: #F4212E;
-  --danger-hover: #d91e28;
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-card-hover: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --radius-sm: 8px;
-  --radius-md: 16px;
-  --radius-lg: 16px;
+  --bg-card-hover: #F8FAFC;
+  --border-card: #DFE6ED;
+  --border-subtle: #E8EDF3;
+  --danger: #DC2626;
+  --danger-hover: #B91C1C;
+  --shadow-card: 0 8px 24px rgb(15 23 42 / 5%);
+  --shadow-card-hover: 0 12px 30px rgb(15 23 42 / 8%);
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
   --radius-full: 9999px;
 }
 
@@ -80,33 +81,43 @@ body {
 /* ===== 应用容器 ===== */
 .app {
   width: 100%;
-  max-width: 1100px;
+  max-width: 1180px;
   height: 100vh;
   display: flex;
   flex-direction: column;
-  padding: 24px 24px 0;
+  padding: 28px 28px 0;
 }
 
 /* ===== 顶部栏 ===== */
 .header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 14px;
+  padding: 20px 22px;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  background: #fff;
   flex-shrink: 0;
 }
 
 .header-left {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+}
+
+.header-eyebrow {
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
 }
 
 .header-title {
-  font-size: 22px;
-  font-weight: 800;
+  font-family: "Songti SC", "STSong", "Noto Serif CJK SC", serif;
+  font-size: 24px;
+  font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.3px;
 }
@@ -125,9 +136,9 @@ body {
 .btn-header {
   font-size: 13px;
   font-weight: 600;
-  padding: 8px 18px;
+  padding: 8px 14px;
   border: 1px solid var(--border-card);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-sm);
   background: var(--bg-card);
   color: var(--text-primary);
   cursor: pointer;
@@ -136,7 +147,9 @@ body {
 }
 
 .btn-header:hover {
-  background: var(--bg-sidebar-hover);
+  border-color: #BFDBFE;
+  background: var(--accent-soft);
+  color: var(--accent-hover);
 }
 
 .btn-header-danger {
@@ -146,27 +159,30 @@ body {
 }
 
 .btn-header-danger:hover {
-  background: rgba(244, 33, 46, 0.08);
+  border-color: var(--danger);
+  background: rgb(220 38 38 / 8%);
+  color: var(--danger);
 }
 
 /* ===== 主体布局 ===== */
 .main {
   display: flex;
-  gap: 24px;
+  gap: 16px;
   align-items: stretch;
   flex: 1;
   min-height: 0;
+  padding-top: 16px;
 }
 
 /* ===== 左侧分类栏 ===== */
 .sidebar {
-  width: 200px;
+  width: 210px;
   flex-shrink: 0;
   background: var(--bg-sidebar);
   border-radius: var(--radius-lg);
-  padding: 20px 0 12px;
+  padding: 16px 0 12px;
   border: 1px solid var(--border-card);
-  box-shadow: var(--shadow-card);
+  box-shadow: none;
   overflow-y: auto;
   margin-bottom: 24px;
 }
@@ -181,7 +197,7 @@ body {
   margin-bottom: 8px;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.7px;
 }
 
 .sidebar-title {
@@ -189,13 +205,13 @@ body {
 }
 
 .btn-add-cat {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border: 1px solid var(--border-card);
-  border-radius: var(--radius-full);
+  border-radius: 9px;
   background: #fff;
   font-size: 16px;
-  color: var(--text-secondary);
+  color: var(--accent);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -221,7 +237,7 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  border-radius: var(--radius-full);
+  border-radius: 9px;
   font-size: 14px;
   cursor: pointer;
   transition: all 0.15s;
@@ -236,7 +252,7 @@ body {
 
 .category-item.active {
   background: var(--bg-sidebar-active);
-  color: var(--accent);
+  color: var(--accent-hover);
   font-weight: 600;
 }
 
@@ -306,7 +322,7 @@ body {
 }
 
 .category-item.active .category-item-count {
-  background: rgba(29, 155, 240, 0.15);
+  background: #DBEAFE;
   color: var(--accent);
 }
 
@@ -316,7 +332,8 @@ body {
   margin-left: 4px;
 }
 
-.category-item:hover .category-item-actions {
+.category-item:hover .category-item-actions,
+.category-item:focus-within .category-item-actions {
   display: flex;
 }
 
@@ -324,7 +341,7 @@ body {
   width: 22px;
   height: 22px;
   border: none;
-  border-radius: 50%;
+  border-radius: 6px;
   background: transparent;
   font-size: 11px;
   cursor: pointer;
@@ -730,7 +747,11 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding-bottom: 24px;
+  padding: 14px;
+  margin-bottom: 24px;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  background: #fff;
 }
 
 /* ===== 搜索和排序栏 ===== */
@@ -761,11 +782,11 @@ body {
 .search-input {
   width: 100%;
   border: 1px solid var(--border-card);
-  border-radius: var(--radius-full);
+  border-radius: 11px;
   padding: 10px 18px 10px 40px;
   font-size: 14px;
   background: #fff;
-  box-shadow: var(--shadow-card);
+  box-shadow: none;
   outline: none;
   color: var(--text-primary);
   transition: all 0.2s;
@@ -793,14 +814,14 @@ body {
   gap: 6px;
   padding: 9px 14px;
   border: 1px solid var(--border-card);
-  border-radius: var(--radius-full);
+  border-radius: 11px;
   font-size: 13px;
   background: #fff;
   color: var(--text-primary);
   cursor: pointer;
   outline: none;
   font-family: inherit;
-  box-shadow: var(--shadow-card);
+  box-shadow: none;
   transition: border-color 0.18s;
   white-space: nowrap;
 }
@@ -901,6 +922,7 @@ body {
 }
 
 .category-title {
+  font-family: "Songti SC", "STSong", "Noto Serif CJK SC", serif;
   font-size: 18px;
   font-weight: 700;
   color: var(--text-primary);
@@ -1386,15 +1408,27 @@ body {
 
 /* ===== 空状态 ===== */
 .empty-state {
+  display: grid;
+  place-content: center;
+  min-height: 210px;
+  margin-top: 2px;
   text-align: center;
-  padding: 60px 20px;
+  padding: 32px 20px;
+  border: 1px dashed var(--border-card);
+  border-radius: var(--radius-md);
   color: var(--text-secondary);
 }
 
 .empty-state .empty-icon {
-  margin-bottom: 16px;
-  color: var(--text-secondary);
-  opacity: 0.4;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  opacity: 1;
 }
 
 .empty-state p {
@@ -1408,41 +1442,21 @@ body {
   opacity: 0.7;
 }
 
-/* ===== 存储配额条（固定 footer） ===== */
+/* ===== 本机缓存说明（固定 footer） ===== */
 .storage-quota-bar {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 0;
-  border-top: 1px solid var(--border-subtle);
-}
-
-.storage-quota-track {
-  flex: 1;
-  height: 6px;
-  border-radius: var(--radius-full);
-  background: #D8E0E6;
-  overflow: hidden;
-}
-
-.storage-quota-fill {
-  height: 100%;
-  border-radius: var(--radius-full);
-  background: var(--accent);
-  transition: width 0.3s ease;
+  justify-content: flex-end;
+  padding: 10px 2px 0;
+  border-top: 0;
 }
 
 .storage-quota-text {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   white-space: nowrap;
   flex-shrink: 0;
-}
-
-/* 警告态：≥80% */
-.storage-quota-bar.warning .storage-quota-fill {
-  background: var(--warning, #F5A623);
 }
 
 .storage-quota-bar.warning .storage-quota-text {
@@ -1450,18 +1464,38 @@ body {
   font-weight: 600;
 }
 
-/* 严重态：≥95% */
-.storage-quota-bar.critical .storage-quota-fill {
-  background: var(--danger);
-}
-
 .storage-quota-bar.critical .storage-quota-text {
   color: var(--danger);
   font-weight: 600;
 }
 
+/* ===== 键盘焦点 ===== */
+.cat-action-btn:focus-visible,
+.btn-add-cat:focus-visible,
+.search-input:focus-visible,
+.sort-dropdown-trigger:focus-visible,
+.tweet-card-icon-btn:focus-visible,
+.btn-header:focus-visible,
+.new-cat-input input:focus-visible,
+.category-item-edit input:focus-visible {
+  outline: 3px solid rgb(37 99 235 / 24%);
+  outline-offset: 2px;
+}
+
 /* ===== 响应式 ===== */
 @media (max-width: 768px) {
+  body {
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
+  }
+
+  .app {
+    height: auto;
+    min-height: 100vh;
+    padding: 14px;
+  }
+
   .main {
     flex-direction: column;
   }
@@ -1469,19 +1503,31 @@ body {
   .sidebar {
     width: 100%;
     position: static;
+    max-height: 240px;
+    margin-bottom: 0;
   }
 
   .header {
     flex-direction: column;
+    align-items: stretch;
     gap: 12px;
   }
 
   .header-actions {
     width: 100%;
+    flex-wrap: wrap;
   }
 
   .btn-header {
     flex: 1;
     text-align: center;
+  }
+
+  .content {
+    min-height: 480px;
+  }
+
+  .toolbar {
+    align-items: stretch;
   }
 }
