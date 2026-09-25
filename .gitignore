@@ -32,4 +32,5 @@ AGENTS.md
 work/
 config/firebase.local.json
 .firebase/
+.superpowers/
 *-debug.log
