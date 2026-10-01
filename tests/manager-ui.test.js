@@ -86,6 +86,10 @@ test('narrow windows scroll the secondary tools without reshaping tweet cards', 
   assert.doesNotMatch(managerCss, /\.tweet-list\s*\{[^}]*grid-template-columns/);
 });
 
+test('secondary cloud tools stay hidden until their state enables them', () => {
+  assert.match(managerCss, /\.app-header-tools \[hidden\]\s*\{\s*display:\s*none\s*!important;?\s*\}/);
+});
+
 test('unlimited storage is presented as text without a percentage track', () => {
   assert.doesNotMatch(html, /storage-quota-track|storage-quota-fill/);
   assert.doesNotMatch(managerJs, /storageQuotaFill/);

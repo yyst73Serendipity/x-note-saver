@@ -154,6 +154,10 @@ body {
   background: #fff;
 }
 
+.app-header-tools [hidden] {
+  display: none !important;
+}
+
 .btn-header {
   display: inline-flex;
   align-items: center;
