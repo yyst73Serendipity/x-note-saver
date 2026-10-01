@@ -13,36 +13,43 @@
 </head>
 <body class="app-body">
   <div class="app">
-    <!-- 顶部栏 -->
-    <header class="header">
-      <div class="header-left">
-        <span class="header-eyebrow">PERSONAL ARCHIVE</span>
-        <h1 class="header-title">我的帖子札记</h1>
-        <span class="header-subtitle">把值得回看的内容，整理成自己的资料库</span>
+    <!-- 两行紧凑顶部导航 -->
+    <header class="app-header">
+      <div class="app-header-primary">
+        <div class="header-brand">
+          <span class="header-mark" aria-hidden="true">X</span>
+          <h1 class="header-title">我的帖子札记</h1>
+          <span class="header-count" id="header-total-count">0 条收藏</span>
+        </div>
+
+        <section class="cloud-panel" aria-label="账号与云同步">
+          <div class="cloud-identity">
+            <span class="cloud-status-dot" aria-hidden="true"></span>
+            <span class="cloud-avatar" aria-hidden="true">云</span>
+            <span class="cloud-copy">
+              <strong id="cloud-account">本地收藏</strong>
+              <span id="cloud-status" role="status" aria-live="polite">正在读取同步状态…</span>
+            </span>
+          </div>
+          <div class="cloud-actions cloud-actions-primary">
+            <button id="cloud-login" type="button">使用 Google 登录</button>
+            <button id="cloud-sync" type="button" hidden>立即同步</button>
+            <button id="cloud-logout" type="button" hidden>退出登录</button>
+          </div>
+        </section>
       </div>
-      <div class="header-actions">
-        <button class="btn-header" id="btn-export">导出备份</button>
-        <button class="btn-header" id="btn-import">导入</button>
-        <button class="btn-header btn-header-danger" id="btn-clear">清空</button>
+
+      <div class="app-header-tools" aria-label="数据工具">
+        <button class="btn-header" id="btn-import" type="button">导入</button>
+        <button class="btn-header" id="btn-export" type="button">导出备份</button>
+        <button class="btn-header btn-header-danger" id="btn-clear" type="button">清空全部数据</button>
+        <button class="btn-header" id="cloud-migrate" type="button" hidden>迁移本机数据</button>
+        <button class="btn-header" id="cloud-conflicts" type="button" hidden>处理笔记冲突</button>
+        <button class="btn-header" id="cloud-cache" type="button" hidden>清除本机缓存</button>
+        <a class="btn-header cloud-help" id="cloud-help" href="setup.html" target="_blank" rel="noopener">配置帮助</a>
       </div>
     </header>
 
-    <section class="cloud-panel" aria-label="账号与云同步">
-      <div class="cloud-identity">
-        <span class="cloud-status-dot" aria-hidden="true"></span>
-        <strong id="cloud-account">本地收藏</strong>
-        <span id="cloud-status" role="status" aria-live="polite">正在读取同步状态…</span>
-      </div>
-      <div class="cloud-actions">
-        <button id="cloud-login" type="button">使用 Google 登录</button>
-        <button id="cloud-sync" type="button" hidden>立即同步</button>
-        <button id="cloud-migrate" type="button" hidden>迁移本地收藏</button>
-        <button id="cloud-conflicts" type="button" hidden>处理笔记冲突</button>
-        <button id="cloud-cache" type="button" hidden>清除本机缓存</button>
-        <button id="cloud-logout" type="button" hidden>退出登录</button>
-        <a href="setup.html" target="_blank" rel="noopener">配置帮助</a>
-      </div>
-    </section>
     <dialog id="cloud-dialog" class="cloud-dialog">
       <h2 id="cloud-dialog-title"></h2>
       <div id="cloud-dialog-body"></div>

@@ -21,9 +21,37 @@ test('manager uses the approved archive structure and copy', () => {
 test('sync navigation keeps all current actions', () => {
   const ids = ['cloud-sync', 'cloud-cache', 'cloud-logout'];
   for (const id of ids) assert.match(html, new RegExp(`id="${id}"`));
-  assert.match(html, />配置帮助<\/a>/);
-  assert.ok(html.indexOf('cloud-sync') < html.indexOf('cloud-cache'));
-  assert.ok(html.indexOf('cloud-cache') < html.indexOf('cloud-logout'));
+  assert.match(html, /id="cloud-help"/);
+  assert.ok(html.indexOf('cloud-sync') < html.indexOf('cloud-logout'));
+  assert.ok(html.indexOf('cloud-migrate') < html.indexOf('cloud-cache'));
+});
+
+test('manager uses the confirmed two-row navigation', () => {
+  assert.match(html, /class="app-header-primary"/);
+  assert.match(html, /class="app-header-tools"/);
+  assert.match(html, /id="header-total-count"/);
+  assert.match(html, /class="btn-header[^\"]*cloud-help"[^>]*id="cloud-help"[^>]*>配置帮助<\/a>/);
+
+  const primaryStart = html.indexOf('app-header-primary');
+  const toolsStart = html.indexOf('app-header-tools');
+  assert.ok(primaryStart < toolsStart);
+  assert.ok(html.indexOf('cloud-sync') < html.indexOf('cloud-logout'));
+  assert.ok(html.indexOf('btn-import') < html.indexOf('btn-export'));
+  assert.ok(html.indexOf('btn-export') < html.indexOf('btn-clear'));
+  assert.ok(html.indexOf('btn-clear') < html.indexOf('cloud-migrate'));
+  assert.ok(html.indexOf('cloud-cache') < html.indexOf('cloud-help'));
+});
+
+test('fullscreen work keeps the existing tweet card composition', () => {
+  const headerIndex = managerJs.indexOf("header.className = 'tweet-card-header'");
+  const footerIndex = managerJs.indexOf("footer.className = 'tweet-card-footer'");
+  const noteIndex = managerJs.indexOf('const noteMeta = createNoteMeta(tweet)');
+  const textIndex = managerJs.indexOf("textEl.className = 'tweet-card-text'");
+  const mediaIndex = managerJs.indexOf("mediaEl.className = 'tweet-card-media'");
+  assert.ok(headerIndex < footerIndex);
+  assert.ok(footerIndex < noteIndex);
+  assert.ok(noteIndex < textIndex);
+  assert.ok(textIndex < mediaIndex);
 });
 
 test('category management remains visible to mouse and keyboard users', () => {

@@ -75,6 +75,7 @@ const sortTrigger = document.getElementById('sort-dropdown-trigger');
 const sortPanel = document.getElementById('sort-dropdown-panel');
 const currentCatTitle = document.getElementById('current-category-title');
 const currentCatCount = document.getElementById('current-category-count');
+const headerTotalCount = document.getElementById('header-total-count');
 const newCatInput = document.getElementById('new-cat-input');
 const inputCatName = document.getElementById('input-cat-name');
 const btnAddCat = document.getElementById('btn-add-cat');
@@ -556,6 +557,8 @@ function renderTweets() {
  * 更新分类标题和计数
  */
 function updateCategoryTitle() {
+  headerTotalCount.textContent = `${tweets.length} 条收藏`;
+
   let filtered = tweets;
   if (currentCategory !== '全部') {
     filtered = filtered.filter(t => t.category === currentCategory);
