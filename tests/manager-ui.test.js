@@ -90,10 +90,18 @@ test('secondary cloud tools stay hidden until their state enables them', () => {
   assert.match(managerCss, /\.app-header-tools \[hidden\]\s*\{\s*display:\s*none\s*!important;?\s*\}/);
 });
 
-test('unlimited storage is presented as text without a percentage track', () => {
-  assert.doesNotMatch(html, /storage-quota-track|storage-quota-fill/);
-  assert.doesNotMatch(managerJs, /storageQuotaFill/);
-  assert.match(html, /id="storage-quota-text"/);
+test('local cache status uses a full-width footer without pretending to be cloud quota', () => {
+  assert.match(html, /<footer class="storage-quota-bar" id="storage-quota-bar">/);
+  assert.match(html, /id="storage-quota-track"/);
+  assert.match(html, /id="storage-quota-fill"/);
+  assert.match(html, /id="storage-quota-text" role="status" aria-live="polite">正在读取本机缓存…<\/span>/);
+  assert.match(html, /<\/section>\s*<\/div>\s*<!-- 页面底部缓存状态 -->\s*<footer/);
+  assert.match(managerJs, /const storageQuotaFill = document\.getElementById\('storage-quota-fill'\)/);
+  assert.match(managerJs, /本地缓存工作副本/);
+  assert.match(managerJs, /不是 Firebase 云端配额/);
+  assert.match(managerCss, /grid-template-rows:\s*auto minmax\(0, 1fr\) auto/);
+  assert.match(managerCss, /\.storage-quota-track\s*\{/);
+  assert.match(managerCss, /\.storage-quota-fill\s*\{/);
 });
 
 test('post list includes the approved quick navigation rail', () => {

@@ -117,6 +117,7 @@ const btnNoteModalConfirm = document.getElementById('btn-note-modal-confirm');
 
 /* 存储配额条 DOM 引用 */
 const storageQuotaBar = document.getElementById('storage-quota-bar');
+const storageQuotaFill = document.getElementById('storage-quota-fill');
 const storageQuotaText = document.getElementById('storage-quota-text');
 
 /**
@@ -230,20 +231,24 @@ async function updateStorageQuota() {
 
     storageQuotaBar.classList.remove('warning', 'critical');
     if (unlimited) {
-      storageQuotaText.textContent = `本地缓存 ${usedText} · 已启用扩展存储权限`;
+      // unlimitedStorage 没有固定分母，短色块只表示本机存在缓存工作副本。
+      storageQuotaFill.style.width = bytesInUse > 0 ? '12%' : '0';
+      storageQuotaText.textContent = `本地缓存工作副本 ${usedText} · 已启用扩展存储权限（不是 Firebase 云端配额）`;
       return;
     }
 
-    // 未授权 unlimitedStorage 时保留真实配额警告，但只用文字表达。
+    // 未授权 unlimitedStorage 时使用 Chrome 提供的真实本机配额。
     const quotaBytes = chrome.storage.local.QUOTA_BYTES || 10 * 1024 * 1024;
     const percent = bytesInUse / quotaBytes * 100;
-    storageQuotaText.textContent = `本地存储 ${usedText} · 已使用 ${percent.toFixed(0)}%`;
+    storageQuotaFill.style.width = `${Math.min(percent, 100)}%`;
+    storageQuotaText.textContent = `本地缓存工作副本 ${usedText} · 本机存储已使用 ${percent.toFixed(0)}%（不是 Firebase 云端配额）`;
     if (percent >= 95) {
       storageQuotaBar.classList.add('critical');
     } else if (percent >= 80) {
       storageQuotaBar.classList.add('warning');
     }
   } catch (error) {
+    storageQuotaFill.style.width = '0';
     storageQuotaText.textContent = '无法读取本机缓存用量';
   }
 }

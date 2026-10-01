@@ -208,12 +208,16 @@
           </div>
         </div>
 
-        <!-- 本机缓存说明 -->
-        <div class="storage-quota-bar" id="storage-quota-bar">
-          <span class="storage-quota-text" id="storage-quota-text"></span>
-        </div>
       </section>
     </div>
+
+    <!-- 页面底部缓存状态 -->
+    <footer class="storage-quota-bar" id="storage-quota-bar">
+      <div class="storage-quota-track" id="storage-quota-track" aria-hidden="true">
+        <div class="storage-quota-fill" id="storage-quota-fill"></div>
+      </div>
+      <span class="storage-quota-text" id="storage-quota-text" role="status" aria-live="polite">正在读取本机缓存…</span>
+    </footer>
   </div>
 
   <!-- 隐藏的文件导入 input -->

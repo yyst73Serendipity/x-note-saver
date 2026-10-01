@@ -84,7 +84,7 @@ body {
   max-width: none;
   height: 100vh;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   padding: 0;
 }
 
@@ -1565,14 +1565,32 @@ body {
   opacity: 0.7;
 }
 
-/* ===== 本机缓存说明（固定 footer） ===== */
+/* ===== 页面底部缓存状态 ===== */
 .storage-quota-bar {
-  flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  padding: 10px 2px 0;
-  border-top: 0;
+  gap: 14px;
+  min-width: 0;
+  padding: 9px 16px;
+  border-top: 1px solid var(--border-card);
+  background: #fff;
+}
+
+.storage-quota-track {
+  flex: 1;
+  min-width: 80px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: #E5E7EB;
+}
+
+.storage-quota-fill {
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent-status);
+  transition: width 0.3s ease, background-color 0.3s ease;
 }
 
 .storage-quota-text {
@@ -1580,11 +1598,20 @@ body {
   color: var(--text-muted);
   white-space: nowrap;
   flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.storage-quota-bar.warning .storage-quota-fill {
+  background: var(--warning, #F5A623);
 }
 
 .storage-quota-bar.warning .storage-quota-text {
   color: var(--warning, #F5A623);
   font-weight: 600;
+}
+
+.storage-quota-bar.critical .storage-quota-fill {
+  background: var(--danger);
 }
 
 .storage-quota-bar.critical .storage-quota-text {
@@ -1652,6 +1679,17 @@ body {
 
   .content {
     min-height: 480px;
+  }
+
+  .storage-quota-bar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 7px;
+    padding: 9px 14px;
+  }
+
+  .storage-quota-text {
+    white-space: normal;
   }
 
   .post-navigator {
