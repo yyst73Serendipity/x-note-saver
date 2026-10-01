@@ -69,6 +69,23 @@ test('manager uses the approved blue theme and responsive layout', () => {
   assert.match(cloudCss, /\.cloud-actions/);
 });
 
+test('manager fills the viewport without changing navigator spacing', () => {
+  assert.match(managerCss, /\.app\s*\{[\s\S]*?width:\s*100%/);
+  assert.match(managerCss, /\.app\s*\{[\s\S]*?max-width:\s*none/);
+  assert.match(managerCss, /\.app\s*\{[\s\S]*?height:\s*100vh/);
+  assert.match(managerCss, /\.app\s*\{[\s\S]*?padding:\s*0/);
+  assert.match(managerCss, /\.sidebar\s*\{[\s\S]*?width:\s*210px/);
+  assert.match(managerCss, /\.post-navigator\s*\{[\s\S]*?width:\s*22px/);
+  assert.match(managerCss, /\.post-navigator\s*\{[\s\S]*?left:\s*2px/);
+  assert.match(managerCss, /\.tweet-list-stage\.has-post-navigator \.tweet-list\s*\{[\s\S]*?padding-left:\s*30px/);
+  assert.match(managerCss, /\.tweet-card\s*\{[\s\S]*?padding:\s*16px 18px/);
+});
+
+test('narrow windows scroll the secondary tools without reshaping tweet cards', () => {
+  assert.match(managerCss, /@media\s*\(max-width:\s*768px\)[\s\S]*?\.app-header-tools\s*\{[\s\S]*?overflow-x:\s*auto/);
+  assert.doesNotMatch(managerCss, /\.tweet-list\s*\{[^}]*grid-template-columns/);
+});
+
 test('unlimited storage is presented as text without a percentage track', () => {
   assert.doesNotMatch(html, /storage-quota-track|storage-quota-fill/);
   assert.doesNotMatch(managerJs, /storageQuotaFill/);

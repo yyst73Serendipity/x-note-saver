@@ -41,7 +41,7 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -81,59 +81,83 @@ body {
 /* ===== 应用容器 ===== */
 .app {
   width: 100%;
-  max-width: 1180px;
+  max-width: none;
   height: 100vh;
-  display: flex;
-  flex-direction: column;
-  padding: 28px 28px 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: 0;
 }
 
-/* ===== 顶部栏 ===== */
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-  padding: 20px 22px;
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius-lg);
-  background: #fff;
+/* ===== 两行紧凑顶部导航 ===== */
+.app-header {
+  min-width: 0;
   flex-shrink: 0;
 }
 
-.header-left {
+.app-header-primary {
+  min-height: 60px;
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 0 22px;
+  background: #09111F;
+  color: #fff;
 }
 
-.header-eyebrow {
-  color: var(--accent);
-  font-size: 10px;
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.header-mark {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  background: #fff;
+  color: #09111F;
   font-weight: 800;
-  letter-spacing: 1.5px;
 }
 
 .header-title {
   font-family: "Songti SC", "STSong", "Noto Serif CJK SC", serif;
-  font-size: 24px;
+  font-size: 21px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #fff;
   letter-spacing: -0.3px;
+  white-space: nowrap;
 }
 
-.header-subtitle {
-  font-size: 13px;
-  color: var(--text-secondary);
+.header-count {
+  padding: 3px 9px;
+  border: 1px solid #344054;
+  border-radius: var(--radius-full);
+  color: #98A2B3;
+  font-size: 11px;
+  white-space: nowrap;
 }
 
-.header-actions {
+.app-header-tools {
+  min-height: 42px;
   display: flex;
-  gap: 8px;
   align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  padding: 5px 22px;
+  border-bottom: 1px solid var(--border-card);
+  background: #fff;
 }
 
 .btn-header {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 13px;
   font-weight: 600;
   padding: 8px 14px;
@@ -144,6 +168,8 @@ body {
   cursor: pointer;
   transition: all 0.15s;
   font-family: inherit;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .btn-header:hover {
@@ -171,7 +197,7 @@ body {
   align-items: stretch;
   flex: 1;
   min-height: 0;
-  padding-top: 16px;
+  padding: 16px;
 }
 
 /* ===== 左侧分类栏 ===== */
@@ -184,7 +210,7 @@ body {
   border: 1px solid var(--border-card);
   box-shadow: none;
   overflow-y: auto;
-  margin-bottom: 24px;
+  margin-bottom: 0;
 }
 
 .sidebar-header {
@@ -748,7 +774,7 @@ body {
   flex-direction: column;
   min-height: 0;
   padding: 14px;
-  margin-bottom: 24px;
+  margin-bottom: 0;
   border: 1px solid var(--border-card);
   border-radius: var(--radius-lg);
   background: #fff;
@@ -1586,11 +1612,31 @@ body {
   .app {
     height: auto;
     min-height: 100vh;
-    padding: 14px;
+    padding: 0;
+  }
+
+  .app-header-primary {
+    padding-inline: 14px;
+  }
+
+  .header-count,
+  .cloud-copy {
+    display: none;
+  }
+
+  .app-header-tools {
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .app-header-tools > * {
+    flex: 0 0 auto;
   }
 
   .main {
     flex-direction: column;
+    padding: 14px;
   }
 
   .sidebar {
@@ -1598,22 +1644,6 @@ body {
     position: static;
     max-height: 240px;
     margin-bottom: 0;
-  }
-
-  .header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-
-  .header-actions {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-
-  .btn-header {
-    flex: 1;
-    text-align: center;
   }
 
   .content {

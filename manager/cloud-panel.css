@@ -2,22 +2,21 @@
  * 账号、同步状态与迁移弹窗，使用蓝色资料库界面的统一按钮和留白。
  */
 .cloud-panel {
+  min-width: 0;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
-  padding: 12px 14px;
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius-md);
-  background: #fff;
-  font-size: 13px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 12px;
 }
 
 .cloud-identity {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 9px;
   min-width: 0;
 }
@@ -31,13 +30,37 @@
   box-shadow: 0 0 0 4px rgb(59 130 246 / 14%);
 }
 
+.cloud-avatar {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #172A46;
+  color: #53B9FF;
+}
+
+.cloud-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
 #cloud-account {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: #fff;
+  font-size: 12px;
 }
 
-#cloud-status { color: var(--text-secondary); }
+#cloud-status {
+  color: #98A2B3;
+  font-size: 10px;
+}
 #cloud-status[data-phase="error"] { color: var(--danger); }
 
 .cloud-actions {
@@ -45,6 +68,10 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.cloud-actions-primary {
+  flex-wrap: nowrap;
 }
 
 .cloud-actions button {
@@ -75,13 +102,32 @@
   opacity: .5;
 }
 
-.cloud-actions [hidden] { display: none; }
-
-.cloud-actions a {
-  color: #475569;
-  font-size: 12px;
-  text-underline-offset: 3px;
+.cloud-actions-primary button {
+  min-height: 31px;
+  border-color: #344054;
+  background: transparent;
+  color: #D0D5DD;
 }
+
+.cloud-actions-primary button:hover {
+  border-color: #475467;
+  background: #172033;
+  color: #fff;
+}
+
+#cloud-sync {
+  border-color: var(--accent-status);
+  background: var(--accent-status);
+  color: #fff;
+}
+
+#cloud-sync:hover {
+  border-color: #60A5FA;
+  background: #2563EB;
+  color: #fff;
+}
+
+.cloud-actions [hidden] { display: none; }
 
 .cloud-dialog {
   width: min(560px, 85vw);
@@ -100,6 +146,6 @@
 .cloud-dialog .cloud-actions { margin-top: 18px; justify-content: flex-end; }
 
 @media (max-width: 768px) {
-  .cloud-panel { align-items: stretch; }
-  .cloud-identity, .cloud-actions { width: 100%; }
+  .cloud-panel { gap: 8px; }
+  .cloud-actions-primary { width: auto; }
 }
