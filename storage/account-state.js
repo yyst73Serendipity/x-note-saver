@@ -60,6 +60,19 @@ export function mutate(state, message) {
         const { id: oldId, category, noteConflicts, categoryId: oldCategory, ...data } = source;
         change(state, 'tweets', key, { ...data, tweetId: key, savedAt: source.savedAt || Date.now(), note: source.note || '', tags: source.tags || [], readLater: !!source.readLater,
           categoryId: categoryEntry(records, category)?.[0] || 'uncategorized' }, { restore: !!records.tweets[key]?.deleted });
+      } else {
+        const previous = records.tweets[key].data;
+        const patch = {};
+        // 再次收藏只补全采集内容，折叠正文和未加载媒体不能覆盖已有完整记录。
+        if (typeof source.text === 'string' && source.text.length > (previous.text || '').length) patch.text = source.text;
+        const images = [...new Set([...(previous.images || []), ...(source.images || [])])];
+        if (images.length > (previous.images || []).length) patch.images = images;
+        if (!previous.videoThumbnail && source.videoThumbnail) patch.videoThumbnail = source.videoThumbnail;
+        if (Object.keys(patch).length) {
+          validateTweet({ ...previous, ...patch });
+          change(state, 'tweets', key, patch);
+          console.info('[推文收藏] 已补全收藏', key, Object.keys(patch));
+        }
       }
       return project(currentWorkspace(state)).tweets.find(t => t.id === key);
     }

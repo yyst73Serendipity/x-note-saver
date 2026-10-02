@@ -37,18 +37,13 @@ function findTweetElements() {
 }
 
 /**
- * 清理翻译插件注入的元素（Google 翻译、沉浸式翻译等）
- * 翻译插件通常在原文旁插入 <font> 标签或带特定属性的元素
+ * 仅清理明确标识的重复译文，保留包裹原文的 font 和 original 节点。
  * @param {Element} el - 已克隆的 DOM 节点
  * @returns {Element} 清理后的节点
  */
 function cleanTranslationTags(el) {
-  // Google 翻译注入的 <font> 标签
-  el.querySelectorAll('font').forEach(f => f.remove());
-  // 沉浸式翻译 / 双语翻译插件标记
-  el.querySelectorAll('[class*="immersive"], [class*="translated"], [class*="trans-"]').forEach(e => e.remove());
-  // 带翻译相关属性的元素
-  el.querySelectorAll('[data-translation], [data-original]').forEach(e => e.remove());
+  // 原文也可能带 immersive 类或 data-original；宽泛删除会把展开后的正文一并丢掉。
+  el.querySelectorAll('[class*="immersive-translate-target"], .immersive-translate-loading').forEach(e => e.remove());
   return el;
 }
 
@@ -104,8 +99,7 @@ function extractTextWithParagraphs(el) {
 
 /**
  * 提取推文正文
- * 统一从当前页面 DOM 提取。详情页为完整正文；时间线页长推文可能被折叠截断，
- * 需要完整正文时请先点开详情页再收藏
+ * 读取当前页面的正文；首页已展开的内容也完整保留，不自动展开或抓取隐藏全文。
  * @param {Element} tweetEl
  * @returns {string}
  */
@@ -218,21 +212,19 @@ function isTweetSaved(tweetId) {
  * @returns {{images: string[], videoThumbnail: string}}
  */
 function extractMedia(tweetEl) {
-  const images = [];
-  // 图片：tweetPhoto 容器内的 img
-  tweetEl.querySelectorAll('[data-testid="tweetPhoto"] img').forEach(img => {
-    const src = img.src || img.getAttribute('src');
-    if (src && isTweetPhotoUrl(src)) {
-      images.push(getOriginalSizeUrl(src));
-    }
-  });
-  // 视频：videoPlayer 内 video 的 poster
+  const images = new Set();
   let videoThumbnail = '';
-  const videoEl = tweetEl.querySelector('[data-testid="videoPlayer"] video');
-  if (videoEl) {
-    videoThumbnail = videoEl.getAttribute('poster') || '';
-  }
-  return { images, videoThumbnail };
+  // 首页播放器尚未挂载 video 时仍可能有封面 img，不能只依赖 videoPlayer > video。
+  tweetEl.querySelectorAll('video[poster]').forEach(video => {
+    const poster = video.getAttribute('poster') || '';
+    if (!videoThumbnail && /^https?:\/\//i.test(poster)) videoThumbnail = poster;
+  });
+  tweetEl.querySelectorAll('img').forEach(img => {
+    const src = img.currentSrc || img.src || '';
+    if (isTweetPhotoUrl(src)) images.add(getOriginalSizeUrl(src));
+    if (!videoThumbnail && /^https:\/\/pbs\.twimg\.com\/(?:amplify_video_thumb|ext_tw_video_thumb|tweet_video_thumb)\//i.test(src)) videoThumbnail = src;
+  });
+  return { images: [...images], videoThumbnail };
 }
 
 /**
@@ -241,7 +233,7 @@ function extractMedia(tweetEl) {
  * @returns {boolean}
  */
 function isTweetPhotoUrl(url) {
-  return url.includes('twimg.com/media') || url.includes('pbs.twimg.com/media');
+  return /^https:\/\/(?:[a-z0-9-]+\.)*twimg\.com\/media\//i.test(url);
 }
 
 /**
@@ -282,6 +274,17 @@ async function extractTweetData(tweetEl) {
   };
 }
 
+/** 在提交时定位按钮所在的当前帖子，拒绝页面复用或脱离 DOM 后的旧快照。 */
+async function captureCurrentTweet(anchorEl, expectedId) {
+  const tweetEl = anchorEl.closest('article[data-testid="tweet"]');
+  if (!expectedId || !anchorEl.isConnected || !tweetEl || extractTweetId(extractTweetUrl(tweetEl)) !== expectedId) {
+    throw new Error('帖子页面已变化，请在原帖上重新点击收藏');
+  }
+  const data = await extractTweetData(tweetEl);
+  console.info('[推文收藏] 已采集页面内容', data.tweetId, { textLength: data.text.length, images: data.images.length, video: !!data.videoThumbnail });
+  return data;
+}
+
 /**
  * 在推文操作栏中找到「书签」按钮的位置，用于插入收藏按钮
  * 在「点赞」和「书签」之间插入
@@ -316,8 +319,8 @@ function createSaveButton(saved) {
   const btn = document.createElement('button');
   btn.className = `${PREFIX}-btn`;
   btn.innerHTML = saved ? SAVED_ICON : SAVE_ICON;
-  btn.title = saved ? '已收藏' : '收藏推文';
-  btn.setAttribute('aria-label', saved ? '已收藏' : '收藏推文');
+  btn.title = saved ? '已收藏，点击补全正文和媒体' : '收藏推文';
+  btn.setAttribute('aria-label', btn.title);
   if (saved) btn.classList.add(`${PREFIX}-saved`);
   return btn;
 }
@@ -379,7 +382,8 @@ function createCategoryPicker(tweetData, anchorEl) {
       if (saving) return;
       saving = true;
       try {
-        const data = { ...tweetData, category: cat };
+        // 选择分类前页面仍会展开、翻译或加载媒体；提交时重新读取，避免保存打开菜单时的快照。
+        const data = { ...await captureCurrentTweet(anchorEl, tweetData.tweetId), category: cat };
         const response = await chrome.runtime.sendMessage({ action: 'saveTweet', data });
         if (response.success) {
           savedTweetIds.add(tweetData.tweetId);
@@ -396,7 +400,8 @@ function createCategoryPicker(tweetData, anchorEl) {
           }
         }
       } catch (err) {
-        showToast('收藏失败，请重试');
+        console.warn('[推文收藏] 收藏失败', err.message);
+        showToast(err.message || '收藏失败，请重试');
       }
       saving = false;
     });
@@ -490,13 +495,14 @@ function positionPicker(anchorEl) {
  */
 function refreshButtons() {
   document.querySelectorAll(`.${PREFIX}-btn`).forEach(btn => {
-    const tweetEl = btn.closest(`[data-${PREFIX}-processed]`);
+    const tweetEl = btn.closest('article[data-testid="tweet"]');
     if (!tweetEl) return;
     const url = extractTweetUrl(tweetEl);
     const tweetId = extractTweetId(url);
     const saved = isTweetSaved(tweetId);
     btn.innerHTML = saved ? SAVED_ICON : SAVE_ICON;
-    btn.title = saved ? '已收藏' : '收藏推文';
+    btn.title = saved ? '已收藏，点击补全正文和媒体' : '收藏推文';
+    btn.setAttribute('aria-label', btn.title);
     if (saved) {
       btn.classList.add(`${PREFIX}-saved`);
     } else {
@@ -524,20 +530,34 @@ async function injectSaveButton(tweetEl) {
 
   const saved = isTweetSaved(tweetId);
   const btn = createSaveButton(saved);
+  let capturing = false;
 
   btn.addEventListener('click', async (e) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (isTweetSaved(tweetId)) {
-      showToast('这条推文已收藏过了');
-      return;
+    if (capturing) return;
+    capturing = true;
+    try {
+      // X 或翻译插件可能替换帖子容器，点击时从按钮重新定位，不能沿用注入时的 tweetEl。
+      const current = btn.closest('article[data-testid="tweet"]');
+      const currentId = current ? extractTweetId(extractTweetUrl(current)) : '';
+      const tweetData = await captureCurrentTweet(btn, currentId);
+      if (isTweetSaved(currentId)) {
+        const response = await chrome.runtime.sendMessage({ action: 'saveTweet', data: tweetData });
+        if (!response.success) throw new Error(response.error || '补全失败，请重试');
+        showToast('已重新采集，保留原分类和笔记');
+      } else {
+        const picker = createCategoryPicker(tweetData, btn);
+        document.body.appendChild(picker);
+        positionPicker(btn);
+      }
+    } catch (err) {
+      console.warn('[推文收藏] 采集失败', err.message);
+      showToast(err.message || '收藏失败，请重试');
+    } finally {
+      capturing = false;
     }
-
-    const tweetData = await extractTweetData(tweetEl);
-    const picker = createCategoryPicker(tweetData, btn);
-    document.body.appendChild(picker);
-    positionPicker(btn);
   });
 
   // 插入到书签按钮之前
